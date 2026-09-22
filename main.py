@@ -734,6 +734,9 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
+        .signature-box {{ margin-top:30px; float: right; text-align:center; padding-right:50px; font-size: 14px; width: 350px; }}
+        .signature-line {{ border-bottom: 1px dotted #333; display: inline-block; width: 220px; margin: 0 5px; }}
+        .signature-row {{ margin-bottom: 15px; text-align: left; padding-left: 20px; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -744,7 +747,6 @@ async def print_page(province: str):
     <div style="width:100%; margin:auto;">
         <div class="no-print" style="margin-bottom: 15px; text-align: center;">
             <button onclick="window.print()" style="background: #3182ce; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Sarabun; font-size: 16px;">🖨️ กดพิมพ์เอกสาร (แนวนอน)</button>
-            <p style="color: #c53030;">* ระบบจะตั้งค่าเป็นกระดาษ A4 แนวนอน (Landscape) อัตโนมัติ</p>
         </div>
         
         <div class="ref-box">รหัสอ้างอิง: {ref_code}</div>
@@ -780,12 +782,14 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top:30px; float: right; text-align:center; padding-right:50px; font-size: 12px;">
-            <p style="margin-bottom: 25px;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
-            <p>(ลงชื่อ)........................................................</p>
-            <p>(........................................................)</p>
-            <p>ตำแหน่ง........................................................</p>
-            <p>วันที่........./................./.............</p>
+        <div class="signature-box">
+            <p style="text-align: center; margin-bottom: 25px; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
+            <div class="signature-row">(ลงชื่อ)<span class="signature-line"></span></div>
+            <div class="signature-row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="signature-line"></span>)</div>
+            <div class="signature-row">ตำแหน่ง<span class="signature-line"></span></div>
+            <div class="signature-row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="signature-line" style="width: 200px;"></span></div>
+            <div class="signature-row" style="margin-top: -10px; font-size: 11px; padding-left: 70px; color: #555;">(รักษาราชการแทน/ปฏิบัติราชการแทน ถ้ามี)</div>
+            <div class="signature-row">&nbsp;&nbsp;วันที่<span class="signature-line" style="width: 230px;"></span></div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -826,74 +830,95 @@ async def export_data(key: str = ""):
     conn.close()
     if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูล</h2>")
 
-    # 1. ข้อมูล Sheet 1 (งบประมาณเรียงยาว ไม่มีแถว Subtotal คั่นกลางให้รำคาญใจ)
+    prov_status = df.groupby('province').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
+    df['prov_dla'] = df['province'] + "|" + df['dla_name']
+    dla_status = df.groupby('prov_dla').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
+
     export_rows = []
+    current_province = None
+    current_dla = None
     row_num = 1
     excel_row = 6 
-    
-    # 2. ข้อมูล Sheet 2 (สรุประดับจังหวัด)
-    summary_rows = []
-    sum_row_num = 1
+    prov_start_row = 6
 
-    for prov in df['province'].unique():
-        prov_df = df[df['province'] == prov]
+    for index, row in df.iterrows():
+        prov = row['province']
+        dla = row['dla_name']
+        sch = row['school_name']
+        rt_c = row['rt_student_count']
+        nt_c = row['nt_student_count']
+        prov_dla_key = f"{prov}|{dla}"
         
-        # --- คำนวณสรุปจังหวัด ---
-        rt_c = prov_df['rt_student_count'].sum()
-        nt_c = prov_df['nt_student_count'].sum()
-        
-        pao_rt = 10000 if rt_c > 0 else 0
-        pao_nt = 10000 if nt_c > 0 else 0
-        
-        dla_rt = 0; dla_nt = 0
-        for dla in prov_df['dla_name'].unique():
-            dla_df = prov_df[prov_df['dla_name'] == dla]
-            if dla_df['rt_student_count'].sum() > 0: dla_rt += 1000
-            if dla_df['nt_student_count'].sum() > 0: dla_nt += 1000
+        if prov != current_province:
+            if current_province is not None:
+                export_rows.append({
+                    'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
+                    'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
+                    'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
+                    'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
+                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
+                    'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
+                })
+                excel_row += 1
+
+            current_province = prov
+            current_dla = None
+            prov_start_row = excel_row
             
-            # --- สร้างแถวลง Sheet 1 ---
+            pao_rt_budget = 10000 if prov_status[prov]['rt_student_count'] > 0 else 0
+            pao_nt_budget = 10000 if prov_status[prov]['nt_student_count'] > 0 else 0
+            
             export_rows.append({
-                'A': row_num, 'B': f"  {dla}", 'C': None, 'D': None, 'E': None, 'F': None,
-                'G': (1000 if dla_df['rt_student_count'].sum()>0 else 0) + (1000 if dla_df['nt_student_count'].sum()>0 else 0), 
-                'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
+                'A': row_num, 'B': f"{prov}", 
+                'C': None, 'D': None, 'E': None, 'F': pao_rt_budget, 
+                'G': None, 'H': None, 'I': None, 'J': pao_nt_budget, 
+                'K': f"=SUM(F{excel_row},J{excel_row})"
             })
             row_num += 1; excel_row += 1
             
-            for _, row in dla_df.iterrows():
-                export_rows.append({
-                    'A': row_num, 'B': f"    - {row['school_name']}", 
-                    'C': row['rt_student_count'], 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)",
-                    'E': row['nt_student_count'], 'F': f"=IF(E{excel_row}>0, 250+(E{excel_row}*14), 0)",
-                    'G': None, 'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
-                })
-                row_num += 1; excel_row += 1
-                
-        sch_rt = sum(250 + (x * 12) for x in prov_df['rt_student_count'] if x > 0)
-        sch_nt = sum(250 + (x * 14) for x in prov_df['nt_student_count'] if x > 0)
-        
-        summary_rows.append({
-            'ลำดับ': sum_row_num, 'จังหวัด': prov,
-            'งบ สถจ. (RT)': pao_rt, 'งบ สถจ. (NT)': pao_nt,
-            'งบ อปท. (RT)': dla_rt, 'งบ อปท. (NT)': dla_nt,
-            'งบโรงเรียน (RT)': sch_rt, 'งบโรงเรียน (NT)': sch_nt,
-            'รวมงบ RT ทั้งสิ้น': pao_rt + dla_rt + sch_rt,
-            'รวมงบ NT ทั้งสิ้น': pao_nt + dla_nt + sch_nt,
-            'รวมงบประมาณ (บาท)': (pao_rt + dla_rt + sch_rt) + (pao_nt + dla_nt + sch_nt)
+        if dla != current_dla:
+            current_dla = dla
+            dla_rt_budget = 1000 if dla_status[prov_dla_key]['rt_student_count'] > 0 else 0
+            dla_nt_budget = 1000 if dla_status[prov_dla_key]['nt_student_count'] > 0 else 0
+            
+            export_rows.append({
+                'A': row_num, 'B': f"  {dla}", 
+                'C': None, 'D': None, 'E': dla_rt_budget, 'F': None,
+                'G': None, 'H': None, 'I': dla_nt_budget, 'J': None, 
+                'K': f"=SUM(E{excel_row},I{excel_row})"
+            })
+            row_num += 1; excel_row += 1
+            
+        export_rows.append({
+            'A': row_num, 'B': f"    - {sch}", 
+            'C': rt_c, 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)", 'E': None, 'F': None,
+            'G': nt_c, 'H': f"=IF(G{excel_row}>0, 250+(G{excel_row}*14), 0)", 'I': None, 'J': None,
+            'K': f"=SUM(D{excel_row},H{excel_row})"
         })
-        sum_row_num += 1
+        row_num += 1; excel_row += 1
+
+    if current_province is not None:
+        export_rows.append({
+            'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
+            'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
+            'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
+            'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
+            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
+            'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
+        })
+        excel_row += 1
 
     export_rows.append({
         'A': 'รวมทั้งสิ้น', 'B': '', 
-        'C': f"=SUM(C6:C{excel_row-1})", 'D': f"=SUM(D6:D{excel_row-1})",
-        'E': f"=SUM(E6:E{excel_row-1})", 'F': f"=SUM(F6:F{excel_row-1})", 
-        'G': f"=SUM(G6:G{excel_row-1})", 'H': f"=SUM(H6:H{excel_row-1})", 
-        'I': f"=SUM(I6:I{excel_row-1})"
+        'C': f"=SUM(C6:C{excel_row-1})/2", 'D': f"=SUM(D6:D{excel_row-1})/2",
+        'E': f"=SUM(E6:E{excel_row-1})/2", 'F': f"=SUM(F6:F{excel_row-1})/2", 
+        'G': f"=SUM(G6:G{excel_row-1})/2", 'H': f"=SUM(H6:H{excel_row-1})/2", 
+        'I': f"=SUM(I6:I{excel_row-1})/2", 'J': f"=SUM(J6:J{excel_row-1})/2", 
+        'K': f"=SUM(K6:K{excel_row-1})/2"
     })
 
     df_export = pd.DataFrame(export_rows)
-    df_summary = pd.DataFrame(summary_rows)
     
-    # 3. ข้อมูล Sheet 3 (รายงานเด็กพิเศษ)
     raw_rows = []
     def ext_sp(j_data):
         if not j_data or j_data == '{}': return {}
@@ -920,63 +945,77 @@ async def export_data(key: str = ""):
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-        # ----- Sheet 1 -----
-        df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_ระดับโรงเรียน')
-        ws1 = writer.sheets['งบประมาณ_ระดับโรงเรียน']
+        df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
+        ws1 = writer.sheets['งบประมาณ_RT_NT']
         
-        ws1.merge_cells('A1:I1'); ws1['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
+        ws1.merge_cells('A1:K1'); ws1['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
         ws1['A1'].font = Font(bold=True, size=12); ws1['A1'].alignment = Alignment(horizontal='center')
-        ws1.merge_cells('A2:I2'); ws1['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
+        ws1.merge_cells('A2:K2'); ws1['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
         ws1['A2'].font = Font(bold=True, size=12); ws1['A2'].alignment = Alignment(horizontal='center')
-        ws1.merge_cells('A3:I3'); ws1['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
+        ws1.merge_cells('A3:K3'); ws1['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
         ws1['A3'].font = Font(bold=True, size=12); ws1['A3'].alignment = Alignment(horizontal='center')
 
         ws1.merge_cells('A4:A5'); ws1['A4'] = 'ลำดับ'
-        ws1.merge_cells('B4:B5'); ws1['B4'] = 'อปท./โรงเรียน'
-        ws1.merge_cells('C4:D4'); ws1['C4'] = 'การสอบ RT (ชั้น ป.1)'; ws1['C5'] = 'นักเรียน (คน)'; ws1['D5'] = 'งบโรงเรียน\n(250 + 12/คน)'
-        ws1.merge_cells('E4:F4'); ws1['E4'] = 'การสอบ NT (ชั้น ป.3)'; ws1['E5'] = 'นักเรียน (คน)'; ws1['F5'] = 'งบโรงเรียน\n(250 + 14/คน)'
-        ws1.merge_cells('G4:G5'); ws1['G4'] = 'งบ อปท.\n(RT 1,000 / NT 1,000)'
-        ws1.merge_cells('H4:H5'); ws1['H4'] = 'งบ สถจ.\n(RT 10,000 / NT 10,000)'
-        ws1.merge_cells('I4:I5'); ws1['I4'] = 'รวมทั้งสิ้น\n(บาท)'
+        ws1.merge_cells('B4:B5'); ws1['B4'] = 'จังหวัด/อปท./โรงเรียน'
         
-        ws1.column_dimensions['A'].width = 8; ws1.column_dimensions['B'].width = 40; ws1.column_dimensions['C'].width = 15; ws1.column_dimensions['D'].width = 25
-        ws1.column_dimensions['E'].width = 15; ws1.column_dimensions['F'].width = 25; ws1.column_dimensions['G'].width = 25; ws1.column_dimensions['H'].width = 25; ws1.column_dimensions['I'].width = 20
+        ws1.merge_cells('C4:F4'); ws1['C4'] = 'การสอบ RT (ชั้น ป.1)'
+        ws1['C5'] = 'นักเรียน\n(คน)'; ws1['D5'] = 'งบโรงเรียน\n(250+12/คน)'; ws1['E5'] = 'งบ อปท.\n(1,000)'; ws1['F5'] = 'งบ สถจ.\n(10,000)'
+        
+        ws1.merge_cells('G4:J4'); ws1['G4'] = 'การสอบ NT (ชั้น ป.3)'
+        ws1['G5'] = 'นักเรียน\n(คน)'; ws1['H5'] = 'งบโรงเรียน\n(250+14/คน)'; ws1['I5'] = 'งบ อปท.\n(1,000)'; ws1['J5'] = 'งบ สถจ.\n(10,000)'
+        
+        ws1.merge_cells('K4:K5'); ws1['K4'] = 'รวมทั้งสิ้น\n(บาท)'
+        
+        ws1.column_dimensions['A'].width = 8; ws1.column_dimensions['B'].width = 40 
+        ws1.column_dimensions['C'].width = 10; ws1.column_dimensions['D'].width = 16 
+        ws1.column_dimensions['E'].width = 12; ws1.column_dimensions['F'].width = 12 
+        ws1.column_dimensions['G'].width = 10; ws1.column_dimensions['H'].width = 16 
+        ws1.column_dimensions['I'].width = 12; ws1.column_dimensions['J'].width = 12 
+        ws1.column_dimensions['K'].width = 16
 
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        
+        fill_rt = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        fill_nt = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        fill_base = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        
         for r in range(4, 6):
-            for c in range(1, 10):
+            for c in range(1, 12):
                 cell = ws1.cell(row=r, column=c)
-                cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+                if 3 <= c <= 6: cell.fill = fill_rt
+                elif 7 <= c <= 10: cell.fill = fill_nt
+                else: cell.fill = fill_base
                 cell.font = Font(bold=True); cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
                 cell.border = thin_border
         
         for r in range(6, len(export_rows) + 6):
-            for c in range(1, 10):
+            cell_A = ws1.cell(row=r, column=1)
+            is_prov_total = (cell_A.value == 'SUBTOTAL')
+            is_grand_total = (cell_A.value == 'รวมทั้งสิ้น')
+            if is_prov_total: cell_A.value = ''
+
+            for c in range(1, 12):
                 cell = ws1.cell(row=r, column=c)
                 cell.border = thin_border
-                if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
-                elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
-                else: 
-                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                    if cell.value is not None: cell.number_format = '#,##0'
-            if ws1.cell(row=r, column=1).value == 'รวมทั้งสิ้น':
-                for c in range(1, 10): ws1.cell(row=r, column=c).fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"); ws1.cell(row=r, column=c).font = Font(bold=True)
                 
-        # ----- Sheet 2 (สรุประดับจังหวัด) -----
-        df_summary.to_excel(writer, index=False, sheet_name='สรุประดับจังหวัด')
-        ws2 = writer.sheets['สรุประดับจังหวัด']
-        for col in ws2.columns:
-            col_letter = col[0].column_letter
-            ws2.column_dimensions[col_letter].width = 20
-            for cell in col:
-                cell.border = thin_border
-                if cell.row == 1:
-                    cell.fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+                if is_prov_total:
+                    cell.font = Font(bold=True, color="003366")
+                    cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
+                    if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif is_grand_total:
                     cell.font = Font(bold=True)
-                elif cell.column > 2:
-                    cell.number_format = '#,##0'
-                    
-        # ----- Sheet 3 (ข้อมูลเด็กพิเศษ) -----
+                    cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                    if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='center' if c==1 else 'right', vertical='center')
+                else:
+                    if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
+                    elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
+                    else:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        if cell.value is not None and cell.value != 0: cell.number_format = '#,##0'
+                        if cell.value == 0: cell.value = "" 
+                        
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
         ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
