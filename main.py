@@ -509,7 +509,7 @@ async def view_dashboard(province: str = ""):
             .data-table .num {{ text-align: center; font-weight: 500; }}
             .data-table .dla-separator td {{ background-color: #f8fafc; border: none; height: 10px; padding: 0; }}
             .nav-link {{ display: inline-block; margin-bottom: 15px; text-decoration: none; color: #2b6cb0; font-weight: 500; }}
-            .btn-edit {{ background-color: #edf2f7; color: #2b6cb0; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 13px; border: 1px solid #cbd5e0; }}
+            .btn-edit {{ background-color: #edf2f7; color: #2b6cb0; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 13px; border: 1px solid #cbd5e0; white-space: nowrap; display: inline-block; }}
             .btn-edit:hover {{ background-color: #e2e8f0; }}
         </style>
     </head>
