@@ -26,7 +26,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# ---- โหลดข้อมูลจากไฟล์ Excel ----
 try:
     df_excel = pd.read_excel('รายชื่อสถานศึกษา.xls', skiprows=2)
     df_excel.columns = ['No', 'Province', 'Amphoe', 'DLA', 'Sch_No', 'School']
@@ -48,16 +47,13 @@ try:
             DB_DATA[prov][dla].append(sch)
             
     PROVINCES = list(DB_DATA.keys())
-    print(f"Loaded {len(PROVINCES)} provinces from Excel.")
 except Exception as e:
-    print("Error loading Excel file:", e)
     DB_DATA = {}
     PROVINCES = []
 
 @app.get("/api/school_data")
 async def get_school_data():
     return JSONResponse(content=DB_DATA)
-# ---------------------------------
 
 def get_db_connection():
     return psycopg2.connect(DB_URL)
@@ -87,10 +83,8 @@ def init_db():
     conn.commit()
     conn.close()
 
-try:
-    init_db()
-except Exception as e:
-    pass
+try: init_db()
+except: pass
 
 class School(BaseModel):
     school_name: str
@@ -124,21 +118,14 @@ def get_province_options(selected=""):
     return options
 
 SPECIAL_CATEGORIES = [
-    ("t1", "บกพร่องทางการเห็น"),
-    ("t2", "บกพร่องทางการได้ยิน"),
-    ("t3", "บกพร่องทางสติปัญญา"),
-    ("t4", "ร่างกาย/สุขภาพ"),
-    ("t5", "บกพร่องทางการเรียนรู้ (LD)"),
-    ("t6", "ทางการพูดและภาษา"),
-    ("t7", "พฤติกรรม/อารมณ์"),
-    ("t8", "ออทิสติก"),
-    ("t9", "พิการซ้อน")
+    ("t1", "ทางการเห็น"), ("t2", "ทางการได้ยิน"), ("t3", "สติปัญญา"),
+    ("t4", "ร่างกาย"), ("t5", "เรียนรู้ (LD)"), ("t6", "พูด/ภาษา"),
+    ("t7", "พฤติกรรม"), ("t8", "ออทิสติก"), ("t9", "พิการซ้อน")
 ]
 
 @app.get("/", response_class=HTMLResponse)
 async def get_form():
     prov_opts = get_province_options()
-    
     special_inputs_rt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input rt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
     special_inputs_nt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input nt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
     
@@ -162,7 +149,6 @@ async def get_form():
             label {{ font-weight: 500; font-size: 14px; margin-bottom: 5px; display: block; color: #4a5568; }}
             input, select {{ width: 100%; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; font-family: 'Sarabun', sans-serif; }}
             input:focus, select:focus {{ outline: none; border-color: #2b6cb0; box-shadow: 0 0 0 1px #2b6cb0; }}
-            
             .special-toggle {{ margin-top: 15px; background: #ebf8ff; padding: 8px 12px; border-radius: 4px; display: inline-block; cursor: pointer; }}
             .special-toggle input {{ width: auto; display: inline; margin-right: 8px; transform: scale(1.2); }}
             .special-panel {{ display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e0; }}
@@ -174,7 +160,6 @@ async def get_form():
             .sp-row input {{ flex: 1; padding: 4px 8px; text-align: center; }}
             .sp-summary {{ margin-top: 10px; padding: 8px; background: white; border-radius: 4px; text-align: center; font-size: 14px; font-weight: 600; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }}
             .error-text {{ color: #e53e3e; font-size: 13px; margin-top: 5px; display: none; font-weight: 500; }}
-
             .btn {{ padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: 'Sarabun', sans-serif; font-weight: 500; transition: background 0.2s; }}
             .btn-primary {{ background-color: #2b6cb0; color: white; width: 100%; font-size: 16px; padding: 12px; margin-top: 20px; }}
             .btn-secondary {{ background-color: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; }}
@@ -491,8 +476,7 @@ async def unlock_province(province: str, key: str = ""):
     c.execute("SELECT file_path FROM province_uploads WHERE province=%s", (province,))
     row = c.fetchone()
     if row and row[0]:
-        try:
-            supabase.storage.from_("signed-docs").remove([row[0]])
+        try: supabase.storage.from_("signed-docs").remove([row[0]])
         except: pass
     c.execute("DELETE FROM province_uploads WHERE province=%s", (province,))
     c.execute("DELETE FROM province_locks WHERE province=%s", (province,))
@@ -537,13 +521,11 @@ async def view_dashboard(province: str = ""):
             if pd.notna(row['rt_special_json']):
                 val = row['rt_special_json']
                 sp_data = json.loads(val) if isinstance(val, str) else val
-                if isinstance(sp_data, dict):
-                    rt_sp_count = sum(sp_data.values())
+                if isinstance(sp_data, dict): rt_sp_count = sum(sp_data.values())
             if pd.notna(row['nt_special_json']):
                 val = row['nt_special_json']
                 sp_data = json.loads(val) if isinstance(val, str) else val
-                if isinstance(sp_data, dict):
-                    nt_sp_count = sum(sp_data.values())
+                if isinstance(sp_data, dict): nt_sp_count = sum(sp_data.values())
                     
             has_sp = (rt_sp_count > 0) or (nt_sp_count > 0)
             sp_badge = f'<span style="color: #d69e2e; font-size: 12px; margin-left: 5px;" title="มีเด็กพิเศษ RT {rt_sp_count} คน / NT {nt_sp_count} คน">♿</span>' if has_sp else ''
@@ -681,16 +663,15 @@ async def print_page(province: str):
     
     ref_code = lock_row[0]
     
-    def get_sp_total(j_data):
-        if not j_data or j_data == '{}': return 0
-        try:
-            d = json.loads(j_data) if isinstance(j_data, str) else j_data
-            return sum(d.values())
-        except: return 0
+    def ext_sp(j_data):
+        if not j_data or j_data == '{}': return {}
+        try: return json.loads(j_data) if isinstance(j_data, str) else j_data
+        except: return {}
 
     table_rows = ""
-    sum_rt_all, sum_rt_norm, sum_rt_sp = 0, 0, 0
-    sum_nt_all, sum_nt_norm, sum_nt_sp = 0, 0, 0
+    sum_rt = {'all':0, 'norm':0, 't1':0,'t2':0,'t3':0,'t4':0,'t5':0,'t6':0,'t7':0,'t8':0,'t9':0}
+    sum_nt = {'all':0, 'norm':0, 't1':0,'t2':0,'t3':0,'t4':0,'t5':0,'t6':0,'t7':0,'t8':0,'t9':0}
+    
     row_num = 1
     current_dla = None
     
@@ -700,25 +681,44 @@ async def print_page(province: str):
         
         rt_all = row['rt_student_count']
         nt_all = row['nt_student_count']
-        rt_sp = get_sp_total(row['rt_special_json'])
-        nt_sp = get_sp_total(row['nt_special_json'])
-        rt_norm = rt_all - rt_sp
-        nt_norm = nt_all - nt_sp
         
-        sum_rt_all += rt_all; sum_rt_norm += rt_norm; sum_rt_sp += rt_sp
-        sum_nt_all += nt_all; sum_nt_norm += nt_norm; sum_nt_sp += nt_sp
+        rt_sp_d = ext_sp(row['rt_special_json'])
+        nt_sp_d = ext_sp(row['nt_special_json'])
         
+        rt_sp_tot = sum(rt_sp_d.values())
+        nt_sp_tot = sum(nt_sp_d.values())
+        
+        rt_norm = rt_all - rt_sp_tot
+        nt_norm = nt_all - nt_sp_tot
+        
+        sum_rt['all'] += rt_all; sum_rt['norm'] += rt_norm
+        sum_nt['all'] += nt_all; sum_nt['norm'] += nt_norm
+        
+        for i in range(1, 10):
+            sum_rt[f't{i}'] += rt_sp_d.get(f't{i}', 0)
+            sum_nt[f't{i}'] += nt_sp_d.get(f't{i}', 0)
+
         table_rows += f'''
         <tr>
             <td class="center">{row_num}</td>
-            <td>{dla_display}</td>
-            <td>{row["school_name"]}</td>
-            <td class="center" style="font-weight:bold;">{rt_all}</td>
-            <td class="center" style="color:#555;">{rt_norm}</td>
-            <td class="center" style="color:#b7791f;">{rt_sp}</td>
-            <td class="center" style="font-weight:bold;">{nt_all}</td>
-            <td class="center" style="color:#555;">{nt_norm}</td>
-            <td class="center" style="color:#b7791f;">{nt_sp}</td>
+            <td class="truncate">{dla_display}</td>
+            <td class="truncate">{row["school_name"]}</td>
+            
+            <td class="center" style="font-weight:bold; background:#f0f8ff;">{rt_all}</td>
+            <td class="center">{rt_norm}</td>
+            <td class="center sp-col">{rt_sp_d.get('t1', '')}</td><td class="center sp-col">{rt_sp_d.get('t2', '')}</td>
+            <td class="center sp-col">{rt_sp_d.get('t3', '')}</td><td class="center sp-col">{rt_sp_d.get('t4', '')}</td>
+            <td class="center sp-col">{rt_sp_d.get('t5', '')}</td><td class="center sp-col">{rt_sp_d.get('t6', '')}</td>
+            <td class="center sp-col">{rt_sp_d.get('t7', '')}</td><td class="center sp-col">{rt_sp_d.get('t8', '')}</td>
+            <td class="center sp-col">{rt_sp_d.get('t9', '')}</td>
+
+            <td class="center" style="font-weight:bold; background:#f0faff;">{nt_all}</td>
+            <td class="center">{nt_norm}</td>
+            <td class="center sp-col">{nt_sp_d.get('t1', '')}</td><td class="center sp-col">{nt_sp_d.get('t2', '')}</td>
+            <td class="center sp-col">{nt_sp_d.get('t3', '')}</td><td class="center sp-col">{nt_sp_d.get('t4', '')}</td>
+            <td class="center sp-col">{nt_sp_d.get('t5', '')}</td><td class="center sp-col">{nt_sp_d.get('t6', '')}</td>
+            <td class="center sp-col">{nt_sp_d.get('t7', '')}</td><td class="center sp-col">{nt_sp_d.get('t8', '')}</td>
+            <td class="center sp-col">{nt_sp_d.get('t9', '')}</td>
         </tr>'''
         row_num += 1
 
@@ -726,63 +726,62 @@ async def print_page(province: str):
     <html lang="th"><head><meta charset="utf-8"><title>เอกสารรับรองข้อมูล จังหวัด{province}</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {{ font-family:'Sarabun',sans-serif; font-size: 13px; color: #000; }}
-        table {{ width:100%; border-collapse:collapse; margin-top: 15px; font-size: 12px; }}
-        th, td {{ border:1px solid black; padding:5px 8px; }}
-        th {{ background-color: #f2f2f2; text-align: center; font-weight: 600; }}
+        body {{ font-family:'Sarabun',sans-serif; font-size: 12px; color: #000; }}
+        table {{ width:100%; border-collapse:collapse; margin-top: 10px; font-size: 10px; }}
+        th, td {{ border:1px solid black; padding:4px 3px; }}
+        th {{ background-color: #e2e8f0; text-align: center; font-weight: 600; line-height: 1.2; }}
         .center {{ text-align:center; }}
-        .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 12px; color: #333; }}
+        .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+        .sp-col {{ color: #b7791f; }}
+        .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
         @media print {{
-            @page {{ margin: 1cm; }}
+            @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
             .no-print {{ display: none; }}
         }}
     </style>
     </head><body>
-    <div style="max-width:900px; margin:auto;">
-        <div class="no-print" style="margin-bottom: 20px; text-align: center;">
-            <button onclick="window.print()" style="background: #3182ce; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Sarabun; font-size: 16px;">🖨️ กดเพื่อพิมพ์เอกสารนี้</button>
+    <div style="width:100%; margin:auto;">
+        <div class="no-print" style="margin-bottom: 15px; text-align: center;">
+            <button onclick="window.print()" style="background: #3182ce; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Sarabun; font-size: 16px;">🖨️ กดพิมพ์เอกสาร (แนวนอน)</button>
+            <p style="color: #c53030;">* ระบบจะตั้งค่าเป็นกระดาษ A4 แนวนอน (Landscape) อัตโนมัติ</p>
         </div>
         
-        <div class="ref-box">รหัสอ้างอิงเอกสาร: {ref_code}</div>
+        <div class="ref-box">รหัสอ้างอิง: {ref_code}</div>
         <div style="clear: both;"></div>
         
-        <h3 style="text-align:center; margin-top: 0;">รายละเอียดจำนวนนักเรียนที่เข้ารับการประเมินคุณภาพผู้เรียน (RT/NT)<br>ประจำปีการศึกษา 2569<br>จังหวัด{province}</h3>
+        <h3 style="text-align:center; margin-top: 0; font-size: 14px;">รายละเอียดจำนวนนักเรียนที่เข้ารับการประเมินคุณภาพผู้เรียน (RT/NT) ประจำปีการศึกษา 2569<br>จังหวัด{province}</h3>
         
         <table>
             <thead>
                 <tr>
-                    <th rowspan="2" style="width: 5%;">ลำดับ</th>
-                    <th rowspan="2" style="width: 25%;">องค์กรปกครองส่วนท้องถิ่น</th>
-                    <th rowspan="2" style="width: 30%;">ชื่อโรงเรียน</th>
-                    <th colspan="3">ป.1 (RT)</th>
-                    <th colspan="3">ป.3 (NT)</th>
+                    <th rowspan="2" style="width: 2%;">ที่</th>
+                    <th rowspan="2" style="width: 12%;">อปท.</th>
+                    <th rowspan="2" style="width: 14%;">โรงเรียน</th>
+                    <th colspan="11" style="background:#bee3f8;">ป.1 (สอบ RT)</th>
+                    <th colspan="11" style="background:#c6f6d5;">ป.3 (สอบ NT)</th>
                 </tr>
                 <tr>
-                    <th style="width: 6%;">รวม</th>
-                    <th style="width: 6%;">ปกติ</th>
-                    <th style="width: 6%;">พิเศษ</th>
-                    <th style="width: 6%;">รวม</th>
-                    <th style="width: 6%;">ปกติ</th>
-                    <th style="width: 6%;">พิเศษ</th>
+                    <th style="width:3%;">รวม</th><th style="width:3%;">ปกติ</th>
+                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">LD</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
+                    <th style="width:3%;">รวม</th><th style="width:3%;">ปกติ</th>
+                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">LD</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
                 </tr>
             </thead>
             <tbody>
                 {table_rows}
-                <tr style="background-color: #f9f9f9; font-weight: bold;">
-                    <td colspan="3" style="text-align:right; padding-right: 15px;">รวมทั้งสิ้น</td>
-                    <td class="center">{sum_rt_all}</td>
-                    <td class="center">{sum_rt_norm}</td>
-                    <td class="center">{sum_rt_sp}</td>
-                    <td class="center">{sum_nt_all}</td>
-                    <td class="center">{sum_nt_norm}</td>
-                    <td class="center">{sum_nt_sp}</td>
+                <tr style="background-color: #edf2f7; font-weight: bold; font-size: 11px;">
+                    <td colspan="3" style="text-align:right; padding-right: 10px;">รวมทั้งสิ้น</td>
+                    <td class="center">{sum_rt['all']}</td><td class="center">{sum_rt['norm']}</td>
+                    <td class="center sp-col">{sum_rt['t1']}</td><td class="center sp-col">{sum_rt['t2']}</td><td class="center sp-col">{sum_rt['t3']}</td><td class="center sp-col">{sum_rt['t4']}</td><td class="center sp-col">{sum_rt['t5']}</td><td class="center sp-col">{sum_rt['t6']}</td><td class="center sp-col">{sum_rt['t7']}</td><td class="center sp-col">{sum_rt['t8']}</td><td class="center sp-col">{sum_rt['t9']}</td>
+                    <td class="center">{sum_nt['all']}</td><td class="center">{sum_nt['norm']}</td>
+                    <td class="center sp-col">{sum_nt['t1']}</td><td class="center sp-col">{sum_nt['t2']}</td><td class="center sp-col">{sum_nt['t3']}</td><td class="center sp-col">{sum_nt['t4']}</td><td class="center sp-col">{sum_nt['t5']}</td><td class="center sp-col">{sum_nt['t6']}</td><td class="center sp-col">{sum_nt['t7']}</td><td class="center sp-col">{sum_nt['t8']}</td><td class="center sp-col">{sum_nt['t9']}</td>
                 </tr>
             </tbody>
         </table>
         
-        <div style="margin-top:40px; float: right; text-align:center; padding-right:20px;">
-            <p style="margin-bottom: 30px;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
+        <div style="margin-top:30px; float: right; text-align:center; padding-right:50px; font-size: 12px;">
+            <p style="margin-bottom: 25px;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
             <p>(ลงชื่อ)........................................................</p>
             <p>(........................................................)</p>
             <p>ตำแหน่ง........................................................</p>
@@ -790,9 +789,7 @@ async def print_page(province: str):
         </div>
         <div style="clear: both;"></div>
     </div>
-    <script>
-        window.onload = function() {{ window.print(); }};
-    </script>
+    <script>window.onload = function() {{ window.print(); }};</script>
     </body></html>'''
     return HTMLResponse(content=html_content)
 
@@ -826,297 +823,187 @@ async def export_data(key: str = ""):
         
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT province, dla_name, school_name, rt_student_count, nt_student_count, rt_special_json, nt_special_json FROM school_data ORDER BY province, dla_name, school_name", conn)
-    
-    if df.empty:
-        conn.close()
-        return HTMLResponse("<h2>ยังไม่มีข้อมูลให้ดาวน์โหลด</h2><a href='/dashboard'>กลับไปหน้าตรวจสอบ</a>")
-
-    prov_status = df.groupby('province').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
-    df['prov_dla'] = df['province'] + "|" + df['dla_name']
-    dla_status = df.groupby('prov_dla').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
     conn.close()
+    if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูล</h2>")
 
+    # 1. ข้อมูล Sheet 1 (งบประมาณเรียงยาว ไม่มีแถว Subtotal คั่นกลางให้รำคาญใจ)
     export_rows = []
-    current_province = None
-    current_dla = None
     row_num = 1
     excel_row = 6 
-    prov_start_row = 6
+    
+    # 2. ข้อมูล Sheet 2 (สรุประดับจังหวัด)
+    summary_rows = []
+    sum_row_num = 1
 
-    for index, row in df.iterrows():
-        prov = row['province']
-        dla = row['dla_name']
-        sch = row['school_name']
-        rt_c = row['rt_student_count']
-        nt_c = row['nt_student_count']
-        prov_dla_key = f"{prov}|{dla}"
+    for prov in df['province'].unique():
+        prov_df = df[df['province'] == prov]
         
-        if prov != current_province:
-            if current_province is not None:
-                export_rows.append({
-                    'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
-                    'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
-                    'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
-                    'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
-                    'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
-                })
-                excel_row += 1
-
-            current_province = prov
-            current_dla = None
-            prov_start_row = excel_row
+        # --- คำนวณสรุปจังหวัด ---
+        rt_c = prov_df['rt_student_count'].sum()
+        nt_c = prov_df['nt_student_count'].sum()
+        
+        pao_rt = 10000 if rt_c > 0 else 0
+        pao_nt = 10000 if nt_c > 0 else 0
+        
+        dla_rt = 0; dla_nt = 0
+        for dla in prov_df['dla_name'].unique():
+            dla_df = prov_df[prov_df['dla_name'] == dla]
+            if dla_df['rt_student_count'].sum() > 0: dla_rt += 1000
+            if dla_df['nt_student_count'].sum() > 0: dla_nt += 1000
             
-            pao_rt_budget = 10000 if prov_status[prov]['rt_student_count'] > 0 else 0
-            pao_nt_budget = 10000 if prov_status[prov]['nt_student_count'] > 0 else 0
-            total_pao_budget = pao_rt_budget + pao_nt_budget
-            
-            export_rows.append({
-                'A': row_num, 'B': f"{prov}", 'C': None, 'D': None, 'E': None, 'F': None,
-                'G': None, 'H': total_pao_budget, 
-                'I': pao_rt_budget, 'J': pao_nt_budget, 'K': f"=SUM(I{excel_row},J{excel_row})"
-            })
-            row_num += 1
-            excel_row += 1
-            
-        if dla != current_dla:
-            current_dla = dla
-            dla_rt_budget = 1000 if dla_status[prov_dla_key]['rt_student_count'] > 0 else 0
-            dla_nt_budget = 1000 if dla_status[prov_dla_key]['nt_student_count'] > 0 else 0
-            total_dla_budget = dla_rt_budget + dla_nt_budget
-            
+            # --- สร้างแถวลง Sheet 1 ---
             export_rows.append({
                 'A': row_num, 'B': f"  {dla}", 'C': None, 'D': None, 'E': None, 'F': None,
-                'G': total_dla_budget, 'H': None, 
-                'I': dla_rt_budget, 'J': dla_nt_budget, 'K': f"=SUM(I{excel_row},J{excel_row})"
+                'G': (1000 if dla_df['rt_student_count'].sum()>0 else 0) + (1000 if dla_df['nt_student_count'].sum()>0 else 0), 
+                'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
             })
-            row_num += 1
-            excel_row += 1
+            row_num += 1; excel_row += 1
             
-        export_rows.append({
-            'A': row_num, 'B': f"    - {sch}", 
-            'C': rt_c, 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)",
-            'E': nt_c, 'F': f"=IF(E{excel_row}>0, 250+(E{excel_row}*14), 0)",
-            'G': None, 'H': None, 
-            'I': f"=D{excel_row}", 'J': f"=F{excel_row}", 'K': f"=SUM(I{excel_row},J{excel_row})"
+            for _, row in dla_df.iterrows():
+                export_rows.append({
+                    'A': row_num, 'B': f"    - {row['school_name']}", 
+                    'C': row['rt_student_count'], 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)",
+                    'E': row['nt_student_count'], 'F': f"=IF(E{excel_row}>0, 250+(E{excel_row}*14), 0)",
+                    'G': None, 'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
+                })
+                row_num += 1; excel_row += 1
+                
+        sch_rt = sum(250 + (x * 12) for x in prov_df['rt_student_count'] if x > 0)
+        sch_nt = sum(250 + (x * 14) for x in prov_df['nt_student_count'] if x > 0)
+        
+        summary_rows.append({
+            'ลำดับ': sum_row_num, 'จังหวัด': prov,
+            'งบ สถจ. (RT)': pao_rt, 'งบ สถจ. (NT)': pao_nt,
+            'งบ อปท. (RT)': dla_rt, 'งบ อปท. (NT)': dla_nt,
+            'งบโรงเรียน (RT)': sch_rt, 'งบโรงเรียน (NT)': sch_nt,
+            'รวมงบ RT ทั้งสิ้น': pao_rt + dla_rt + sch_rt,
+            'รวมงบ NT ทั้งสิ้น': pao_nt + dla_nt + sch_nt,
+            'รวมงบประมาณ (บาท)': (pao_rt + dla_rt + sch_rt) + (pao_nt + dla_nt + sch_nt)
         })
-        row_num += 1
-        excel_row += 1
-
-    if current_province is not None:
-        export_rows.append({
-            'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
-            'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
-            'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
-            'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
-            'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
-        })
-        excel_row += 1
+        sum_row_num += 1
 
     export_rows.append({
         'A': 'รวมทั้งสิ้น', 'B': '', 
-        'C': f"=SUM(C6:C{excel_row-1})/2", 'D': f"=SUM(D6:D{excel_row-1})/2",
-        'E': f"=SUM(E6:E{excel_row-1})/2", 'F': f"=SUM(F6:F{excel_row-1})/2", 
-        'G': f"=SUM(G6:G{excel_row-1})/2", 'H': f"=SUM(H6:H{excel_row-1})/2", 
-        'I': f"=SUM(I6:I{excel_row-1})/2", 'J': f"=SUM(J6:J{excel_row-1})/2", 
-        'K': f"=SUM(K6:K{excel_row-1})/2"
+        'C': f"=SUM(C6:C{excel_row-1})", 'D': f"=SUM(D6:D{excel_row-1})",
+        'E': f"=SUM(E6:E{excel_row-1})", 'F': f"=SUM(F6:F{excel_row-1})", 
+        'G': f"=SUM(G6:G{excel_row-1})", 'H': f"=SUM(H6:H{excel_row-1})", 
+        'I': f"=SUM(I6:I{excel_row-1})"
     })
 
     df_export = pd.DataFrame(export_rows)
-    file_path = "export_rt_nt_2569_calculated.xlsx"
+    df_summary = pd.DataFrame(summary_rows)
     
+    # 3. ข้อมูล Sheet 3 (รายงานเด็กพิเศษ)
     raw_rows = []
-    def extract_sp_total(json_data):
-        if not json_data or json_data == '{}': return 0
-        try:
-            data = json.loads(json_data) if isinstance(json_data, str) else json_data
-            return sum(data.values())
-        except: return 0
-        
-    def extract_sp_types(json_data):
-        if not json_data or json_data == '{}': return {}
-        try:
-            return json.loads(json_data) if isinstance(json_data, str) else json_data
+    def ext_sp(j_data):
+        if not j_data or j_data == '{}': return {}
+        try: return json.loads(j_data) if isinstance(j_data, str) else j_data
         except: return {}
 
     sp_row_num = 1
     for index, row in df.iterrows():
-        rt_sp = extract_sp_total(row['rt_special_json'])
-        nt_sp = extract_sp_total(row['nt_special_json'])
-        rt_normal = row['rt_student_count'] - rt_sp
-        nt_normal = row['nt_student_count'] - nt_sp
-        rt_types = extract_sp_types(row['rt_special_json'])
-        nt_types = extract_sp_types(row['nt_special_json'])
+        rt_sp_d = ext_sp(row['rt_special_json'])
+        nt_sp_d = ext_sp(row['nt_special_json'])
+        rt_sp = sum(rt_sp_d.values())
+        nt_sp = sum(nt_sp_d.values())
         
         raw_rows.append([
             sp_row_num, row['province'], row['dla_name'], row['school_name'],
-            row['rt_student_count'], rt_normal, rt_sp,
-            rt_types.get('t1', 0), rt_types.get('t2', 0), rt_types.get('t3', 0),
-            rt_types.get('t4', 0), rt_types.get('t5', 0), rt_types.get('t6', 0),
-            rt_types.get('t7', 0), rt_types.get('t8', 0), rt_types.get('t9', 0),
-            row['nt_student_count'], nt_normal, nt_sp,
-            nt_types.get('t1', 0), nt_types.get('t2', 0), nt_types.get('t3', 0),
-            nt_types.get('t4', 0), nt_types.get('t5', 0), nt_types.get('t6', 0),
-            nt_types.get('t7', 0), nt_types.get('t8', 0), nt_types.get('t9', 0)
+            row['rt_student_count'], row['rt_student_count'] - rt_sp, rt_sp,
+            rt_sp_d.get('t1', 0), rt_sp_d.get('t2', 0), rt_sp_d.get('t3', 0), rt_sp_d.get('t4', 0), rt_sp_d.get('t5', 0), rt_sp_d.get('t6', 0), rt_sp_d.get('t7', 0), rt_sp_d.get('t8', 0), rt_sp_d.get('t9', 0),
+            row['nt_student_count'], row['nt_student_count'] - nt_sp, nt_sp,
+            nt_sp_d.get('t1', 0), nt_sp_d.get('t2', 0), nt_sp_d.get('t3', 0), nt_sp_d.get('t4', 0), nt_sp_d.get('t5', 0), nt_sp_d.get('t6', 0), nt_sp_d.get('t7', 0), nt_sp_d.get('t8', 0), nt_sp_d.get('t9', 0)
         ])
         sp_row_num += 1
         
     df_raw = pd.DataFrame(raw_rows)
+    file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-        df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
-        worksheet = writer.sheets['งบประมาณ_RT_NT']
+        # ----- Sheet 1 -----
+        df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_ระดับโรงเรียน')
+        ws1 = writer.sheets['งบประมาณ_ระดับโรงเรียน']
         
-        worksheet.merge_cells('A1:K1')
-        worksheet['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
-        worksheet['A1'].font = Font(bold=True, size=12)
-        worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
-        
-        worksheet.merge_cells('A2:K2')
-        worksheet['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
-        worksheet['A2'].font = Font(bold=True, size=12)
-        worksheet['A2'].alignment = Alignment(horizontal='center', vertical='center')
-        
-        worksheet.merge_cells('A3:K3')
-        worksheet['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
-        worksheet['A3'].font = Font(bold=True, size=12)
-        worksheet['A3'].alignment = Alignment(horizontal='center', vertical='center')
+        ws1.merge_cells('A1:I1'); ws1['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
+        ws1['A1'].font = Font(bold=True, size=12); ws1['A1'].alignment = Alignment(horizontal='center')
+        ws1.merge_cells('A2:I2'); ws1['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
+        ws1['A2'].font = Font(bold=True, size=12); ws1['A2'].alignment = Alignment(horizontal='center')
+        ws1.merge_cells('A3:I3'); ws1['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
+        ws1['A3'].font = Font(bold=True, size=12); ws1['A3'].alignment = Alignment(horizontal='center')
 
-        worksheet.merge_cells('A4:A5'); worksheet['A4'] = 'ลำดับ'
-        worksheet.merge_cells('B4:B5'); worksheet['B4'] = 'จังหวัด/อปท./โรงเรียน'
-        worksheet.merge_cells('G4:G5'); worksheet['G4'] = 'งบ อปท.\n(RT 1,000 / NT 1,000)'
-        worksheet.merge_cells('H4:H5'); worksheet['H4'] = 'งบ สถจ.\n(RT 10,000 / NT 10,000)'
-        worksheet.merge_cells('I4:I5'); worksheet['I4'] = 'สรุปงบ RT\n(บาท)'
-        worksheet.merge_cells('J4:J5'); worksheet['J4'] = 'สรุปงบ NT\n(บาท)'
-        worksheet.merge_cells('K4:K5'); worksheet['K4'] = 'รวมทั้งสิ้น\n(บาท)'
+        ws1.merge_cells('A4:A5'); ws1['A4'] = 'ลำดับ'
+        ws1.merge_cells('B4:B5'); ws1['B4'] = 'อปท./โรงเรียน'
+        ws1.merge_cells('C4:D4'); ws1['C4'] = 'การสอบ RT (ชั้น ป.1)'; ws1['C5'] = 'นักเรียน (คน)'; ws1['D5'] = 'งบโรงเรียน\n(250 + 12/คน)'
+        ws1.merge_cells('E4:F4'); ws1['E4'] = 'การสอบ NT (ชั้น ป.3)'; ws1['E5'] = 'นักเรียน (คน)'; ws1['F5'] = 'งบโรงเรียน\n(250 + 14/คน)'
+        ws1.merge_cells('G4:G5'); ws1['G4'] = 'งบ อปท.\n(RT 1,000 / NT 1,000)'
+        ws1.merge_cells('H4:H5'); ws1['H4'] = 'งบ สถจ.\n(RT 10,000 / NT 10,000)'
+        ws1.merge_cells('I4:I5'); ws1['I4'] = 'รวมทั้งสิ้น\n(บาท)'
         
-        worksheet.merge_cells('C4:D4')
-        worksheet['C4'] = 'การสอบ RT (ชั้น ป.1)'
-        worksheet['C5'] = 'จำนวนนักเรียน\n(คน)'
-        worksheet['D5'] = 'งบโรงเรียน\n(250บ. + 12บ./คน)'
-        
-        worksheet.merge_cells('E4:F4')
-        worksheet['E4'] = 'การสอบ NT (ชั้น ป.3)'
-        worksheet['E5'] = 'จำนวนนักเรียน\n(คน)'
-        worksheet['F5'] = 'งบโรงเรียน\n(250บ. + 14บ./คน)'
-        
-        worksheet.column_dimensions['A'].width = 8
-        worksheet.column_dimensions['B'].width = 40
-        worksheet.column_dimensions['C'].width = 15
-        worksheet.column_dimensions['D'].width = 25
-        worksheet.column_dimensions['E'].width = 15
-        worksheet.column_dimensions['F'].width = 25
-        worksheet.column_dimensions['G'].width = 20
-        worksheet.column_dimensions['H'].width = 22
-        worksheet.column_dimensions['I'].width = 15
-        worksheet.column_dimensions['J'].width = 15
-        worksheet.column_dimensions['K'].width = 18
+        ws1.column_dimensions['A'].width = 8; ws1.column_dimensions['B'].width = 40; ws1.column_dimensions['C'].width = 15; ws1.column_dimensions['D'].width = 25
+        ws1.column_dimensions['E'].width = 15; ws1.column_dimensions['F'].width = 25; ws1.column_dimensions['G'].width = 25; ws1.column_dimensions['H'].width = 25; ws1.column_dimensions['I'].width = 20
 
-        header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-        total_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-        
-        for row in range(4, 6):
-            for col in range(1, 12):
-                cell = worksheet.cell(row=row, column=col)
-                cell.fill = header_fill
-                cell.font = Font(bold=True)
-                cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        for r in range(4, 6):
+            for c in range(1, 10):
+                cell = ws1.cell(row=r, column=c)
+                cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+                cell.font = Font(bold=True); cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
                 cell.border = thin_border
         
-        last_row = len(export_rows) + 5
-        for row in range(6, last_row + 1):
-            cell_A = worksheet.cell(row=row, column=1)
-            is_prov_total = (cell_A.value == 'SUBTOTAL')
-            is_grand_total = (cell_A.value == 'รวมทั้งสิ้น')
-            if is_prov_total:
-                cell_A.value = ''
-
-            for col in range(1, 12):
-                cell = worksheet.cell(row=row, column=col)
+        for r in range(6, len(export_rows) + 6):
+            for c in range(1, 10):
+                cell = ws1.cell(row=r, column=c)
                 cell.border = thin_border
+                if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
+                else: 
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                    if cell.value is not None: cell.number_format = '#,##0'
+            if ws1.cell(row=r, column=1).value == 'รวมทั้งสิ้น':
+                for c in range(1, 10): ws1.cell(row=r, column=c).fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"); ws1.cell(row=r, column=c).font = Font(bold=True)
                 
-                if is_prov_total:
-                    cell.font = Font(bold=True, color="003366")
-                    cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
-                    if col > 2:
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                        cell.number_format = '#,##0'
-                    else:
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                elif is_grand_total:
+        # ----- Sheet 2 (สรุประดับจังหวัด) -----
+        df_summary.to_excel(writer, index=False, sheet_name='สรุประดับจังหวัด')
+        ws2 = writer.sheets['สรุประดับจังหวัด']
+        for col in ws2.columns:
+            col_letter = col[0].column_letter
+            ws2.column_dimensions[col_letter].width = 20
+            for cell in col:
+                cell.border = thin_border
+                if cell.row == 1:
+                    cell.fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
                     cell.font = Font(bold=True)
-                    cell.fill = total_fill
-                    if col > 2:
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                        cell.number_format = '#,##0'
-                    else:
-                        cell.alignment = Alignment(horizontal='center' if col==1 else 'right', vertical='center')
-                else:
-                    if col == 1:
-                        cell.alignment = Alignment(horizontal='center', vertical='center')
-                    elif col == 2:
-                        cell.alignment = Alignment(horizontal='left', vertical='center')
-                    else:
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                        if cell.value is not None:
-                            cell.number_format = '#,##0'
-            
+                elif cell.column > 2:
+                    cell.number_format = '#,##0'
+                    
+        # ----- Sheet 3 (ข้อมูลเด็กพิเศษ) -----
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
-        
-        ws_sp.merge_cells('A1:AB1')
-        ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'
-        ws_sp['A1'].font = Font(bold=True, size=14)
-        ws_sp['A1'].alignment = Alignment(horizontal='center', vertical='center')
-        
+        ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
         ws_sp.merge_cells('A2:D2'); ws_sp['A2'] = 'ข้อมูลสถานศึกษา'
         ws_sp.merge_cells('E2:P2'); ws_sp['E2'] = 'ระดับชั้น ป.1 (สอบ RT)'
         ws_sp.merge_cells('Q2:AB2'); ws_sp['Q2'] = 'ระดับชั้น ป.3 (สอบ NT)'
         
-        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 
-                   'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน',
-                   'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
-        
-        for col_num, header in enumerate(headers, 1):
-            ws_sp.cell(row=3, column=col_num).value = header
+        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
+        for col_num, header in enumerate(headers, 1): ws_sp.cell(row=3, column=col_num).value = header
             
-        sp_info_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-        sp_rt_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-        sp_nt_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
-        
         for col in range(1, 29):
-            ws_sp.cell(row=2, column=col).border = thin_border
-            ws_sp.cell(row=3, column=col).border = thin_border
-            ws_sp.cell(row=3, column=col).font = Font(bold=True)
-            ws_sp.cell(row=2, column=col).font = Font(bold=True)
-            ws_sp.cell(row=2, column=col).alignment = Alignment(horizontal='center', vertical='center')
-            ws_sp.cell(row=3, column=col).alignment = Alignment(horizontal='center', vertical='center')
-            
-            if col <= 4:
-                ws_sp.cell(row=2, column=col).fill = sp_info_fill
-                ws_sp.cell(row=3, column=col).fill = sp_info_fill
-            elif col <= 16:
-                ws_sp.cell(row=2, column=col).fill = sp_rt_fill
-                ws_sp.cell(row=3, column=col).fill = sp_rt_fill
-            else:
-                ws_sp.cell(row=2, column=col).fill = sp_nt_fill
-                ws_sp.cell(row=3, column=col).fill = sp_nt_fill
+            ws_sp.cell(row=2, column=col).border = thin_border; ws_sp.cell(row=3, column=col).border = thin_border
+            ws_sp.cell(row=3, column=col).font = Font(bold=True); ws_sp.cell(row=2, column=col).font = Font(bold=True)
+            ws_sp.cell(row=2, column=col).alignment = Alignment(horizontal='center', vertical='center'); ws_sp.cell(row=3, column=col).alignment = Alignment(horizontal='center', vertical='center')
+            if col <= 4: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+            elif col <= 16: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+            else: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
                 
-        ws_sp.column_dimensions['B'].width = 15
-        ws_sp.column_dimensions['C'].width = 25
-        ws_sp.column_dimensions['D'].width = 30
+        ws_sp.column_dimensions['B'].width = 15; ws_sp.column_dimensions['C'].width = 25; ws_sp.column_dimensions['D'].width = 30
         for col_letter in ['E','F','G', 'Q','R','S']: ws_sp.column_dimensions[col_letter].width = 10
         
-        last_sp_row = len(raw_rows) + 3
-        for r in range(4, last_sp_row + 1):
+        for r in range(4, len(raw_rows) + 4):
             for c in range(1, 29):
                 cell = ws_sp.cell(row=r, column=c)
                 cell.border = thin_border
                 if c > 4: cell.alignment = Alignment(horizontal='center')
-                if c > 4 and cell.value == 0:
-                    cell.font = Font(color="CCCCCC")
+                if c > 4 and cell.value == 0: cell.font = Font(color="CCCCCC")
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
 
@@ -1131,18 +1018,15 @@ async def edit_page(school_id: int):
     if not row: return HTMLResponse("<h2>ไม่พบข้อมูล</h2>")
     
     prov = row[1]
-    if is_province_locked(prov):
-        return HTMLResponse(f"<script>alert('จังหวัด {prov} ถูกล็อคแล้ว ไม่สามารถแก้ไขได้'); window.location.href='/dashboard?province={prov}';</script>")
+    if is_province_locked(prov): return HTMLResponse(f"<script>alert('จังหวัด {prov} ถูกล็อคแล้ว ไม่สามารถแก้ไขได้'); window.location.href='/dashboard?province={prov}';</script>")
 
     rt_sp_data = json.loads(row[6]) if isinstance(row[6], str) else (row[6] or {})
     nt_sp_data = json.loads(row[7]) if isinstance(row[7], str) else (row[7] or {})
-    
     has_special = bool(rt_sp_data) or bool(nt_sp_data)
     checked_str = "checked" if has_special else ""
     panel_display = "block" if has_special else "none"
 
-    def get_sp_val(data_dict, key):
-        return data_dict.get(key, 0)
+    def get_sp_val(data_dict, key): return data_dict.get(key, 0)
         
     rt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="rt_sp_{cid}" class="sp-input rt-sp-{cid}" min="0" value="{get_sp_val(rt_sp_data, cid)}" oninput="calcSpecial(\'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
     nt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="nt_sp_{cid}" class="sp-input nt-sp-{cid}" min="0" value="{get_sp_val(nt_sp_data, cid)}" oninput="calcSpecial(\'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
@@ -1161,7 +1045,6 @@ async def edit_page(school_id: int):
             input, select {{ width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }}
             .flex-row {{ display: flex; gap: 15px; }}
             .flex-row > div {{ flex: 1; }}
-            
             .special-toggle {{ background: #ebf8ff; padding: 10px 15px; border-radius: 6px; display: inline-block; cursor: pointer; margin-bottom: 15px; width: 100%; box-sizing: border-box; font-weight: 500; }}
             .special-toggle input {{ width: auto; margin-right: 10px; transform: scale(1.2); }}
             .special-panel {{ display: {panel_display}; padding-top: 15px; border-top: 1px dashed #cbd5e0; }}
@@ -1173,7 +1056,6 @@ async def edit_page(school_id: int):
             .sp-row input {{ flex: 1; padding: 4px 8px; text-align: center; margin-bottom: 0; }}
             .sp-summary {{ margin-top: 10px; padding: 8px; background: white; border-radius: 4px; text-align: center; font-size: 14px; font-weight: 600; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }}
             .error-text {{ color: #e53e3e; font-size: 13px; margin-top: 5px; display: none; font-weight: 500; text-align: center; }}
-            
             .btn-group {{ display: flex; justify-content: space-between; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; }}
             .btn {{ padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: 600; font-size: 15px; text-decoration: none; text-align: center; }}
             .btn-save {{ background-color: #3182ce; color: white; flex: 2; margin-right: 10px; }}
@@ -1233,55 +1115,39 @@ async def edit_page(school_id: int):
                 </div>
             </form>
         </div>
-
         <script>
             function toggleSpecialPanel(cb) {{
                 const panel = document.getElementById('special_panel');
                 panel.style.display = cb.checked ? 'block' : 'none';
                 if(!cb.checked) {{
                     document.querySelectorAll('.sp-input').forEach(inp => inp.value = 0);
-                    calcSpecial('rt');
-                    calcSpecial('nt');
+                    calcSpecial('rt'); calcSpecial('nt');
                 }}
             }}
-
             function calcSpecial(type) {{
                 const totalInput = document.getElementById(type + '_count');
                 const total = parseInt(totalInput.value) || 0;
-                
                 let spTotal = 0;
                 document.querySelectorAll('.' + type + '-sp-t1, .' + type + '-sp-t2, .' + type + '-sp-t3, .' + type + '-sp-t4, .' + type + '-sp-t5, .' + type + '-sp-t6, .' + type + '-sp-t7, .' + type + '-sp-t8, .' + type + '-sp-t9').forEach(inp => {{
                     spTotal += parseInt(inp.value) || 0;
                 }});
-
                 const normalCount = total - spTotal;
                 const summaryBox = document.getElementById(type + '_summary');
                 const errorBox = document.getElementById(type + '_error');
-                
                 if(normalCount < 0) {{
-                    summaryBox.style.display = 'none';
-                    errorBox.style.display = 'block';
-                    totalInput.style.borderColor = '#e53e3e';
+                    summaryBox.style.display = 'none'; errorBox.style.display = 'block'; totalInput.style.borderColor = '#e53e3e';
                 }} else {{
-                    summaryBox.style.display = 'block';
-                    errorBox.style.display = 'none';
-                    totalInput.style.borderColor = '#cbd5e0';
+                    summaryBox.style.display = 'block'; errorBox.style.display = 'none'; totalInput.style.borderColor = '#cbd5e0';
                     document.getElementById(type + '_normal_num').innerText = normalCount;
                 }}
             }}
-            
             function validateForm() {{
                 if(document.getElementById('rt_error').style.display === 'block' || document.getElementById('nt_error').style.display === 'block') {{
-                    alert('❌ มียอดเด็กพิเศษรวมกันมากกว่ายอดนักเรียนทั้งหมด กรุณาตรวจสอบตัวเลขอีกครั้ง');
-                    return false;
+                    alert('❌ มียอดเด็กพิเศษรวมกันมากกว่ายอดนักเรียนทั้งหมด กรุณาตรวจสอบตัวเลขอีกครั้ง'); return false;
                 }}
                 return true;
             }}
-            
-            window.onload = () => {{
-                calcSpecial('rt');
-                calcSpecial('nt');
-            }};
+            window.onload = () => {{ calcSpecial('rt'); calcSpecial('nt'); }};
         </script>
     </body>
     </html>'''
@@ -1295,29 +1161,17 @@ async def update_data(school_id: int, request: Request):
     nt_count = int(form_data.get("nt_count", 0))
     has_special = form_data.get("has_special") == "on"
     
-    rt_sp = {}
-    nt_sp = {}
-    
+    rt_sp = {}; nt_sp = {}
     if has_special:
         for cid, _ in SPECIAL_CATEGORIES:
-            rt_val = int(form_data.get(f"rt_sp_{cid}", 0))
-            nt_val = int(form_data.get(f"nt_sp_{cid}", 0))
+            rt_val = int(form_data.get(f"rt_sp_{cid}", 0)); nt_val = int(form_data.get(f"nt_sp_{cid}", 0))
             if rt_val > 0: rt_sp[cid] = rt_val
             if nt_val > 0: nt_sp[cid] = nt_val
             
-    rt_json = json.dumps(rt_sp)
-    nt_json = json.dumps(nt_sp)
-    
-    conn = get_db_connection()
-    c = conn.cursor()
+    conn = get_db_connection(); c = conn.cursor()
     c.execute("SELECT province FROM school_data WHERE id=%s", (school_id,))
     prov = c.fetchone()[0]
-    
-    c.execute('''UPDATE school_data 
-                 SET school_name=%s, rt_student_count=%s, nt_student_count=%s, rt_special_json=%s, nt_special_json=%s
-                 WHERE id=%s''', 
-              (school_name, rt_count, nt_count, rt_json, nt_json, school_id))
-    conn.commit()
-    conn.close()
-    
+    c.execute('''UPDATE school_data SET school_name=%s, rt_student_count=%s, nt_student_count=%s, rt_special_json=%s, nt_special_json=%s WHERE id=%s''', 
+              (school_name, rt_count, nt_count, json.dumps(rt_sp), json.dumps(nt_sp), school_id))
+    conn.commit(); conn.close()
     return RedirectResponse(url=f"/dashboard?province={prov}", status_code=303)
