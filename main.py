@@ -631,7 +631,7 @@ async def print_page(province: str):
                 </div>
             </div>
             <h2>รายละเอียดจำนวนนักเรียนที่เข้ารับการประเมินคุณภาพผู้เรียน (RT/NT)</h2>
-            <h3>ประจำปีการศึกษา 2568<br>จังหวัด{province}</h3>
+            <h3>ประจำปีการศึกษา 2569<br>จังหวัด{province}</h3>
             <table>
                 <thead>
                     <tr>
@@ -901,7 +901,7 @@ async def export_data(key: str = ""):
     })
 
     df_export = pd.DataFrame(export_rows)
-    file_path = "export_rt_nt_2568_calculated.xlsx"
+    file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
         df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
@@ -918,7 +918,7 @@ async def export_data(key: str = ""):
         worksheet['A2'].alignment = Alignment(horizontal='center', vertical='center')
         
         worksheet.merge_cells('A3:I3')
-        worksheet['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2568'
+        worksheet['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
         worksheet['A3'].font = Font(bold=True, size=12)
         worksheet['A3'].alignment = Alignment(horizontal='center', vertical='center')
 
@@ -987,4 +987,4 @@ async def export_data(key: str = ""):
             cell.font = Font(bold=True)
             cell.fill = total_fill
 
-    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2568.xlsx")
+    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
