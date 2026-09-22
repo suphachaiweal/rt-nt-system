@@ -21,7 +21,7 @@ app = FastAPI()
 # ==========================================
 SUPABASE_URL = "https://svrtsuffmpoaeaozuihv.supabase.co" 
 SUPABASE_KEY = "sb_publishable_S9c4kd6Ylxm2DUdzCOOOTQ_VVJV1GUY"
-DB_URL = "postgresql://postgres:DlaAdmin2569Supabase@db.svrtsuffmpoaeaozuihv.supabase.co:5432/postgres"
+DB_URL = "postgresql://postgres.svrtsuffmpoaeaozuihv:DlaAdmin2569Supabase@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
 # ==========================================
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
