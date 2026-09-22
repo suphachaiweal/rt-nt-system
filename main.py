@@ -1014,7 +1014,7 @@ async def export_data(key: str = ""):
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
                         if cell.value is not None and cell.value != 0: cell.number_format = '#,##0'
-                        if cell.value == 0: cell.value = "" 
+                        if cell.value == 0: cell.value = ""
                         
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
