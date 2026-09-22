@@ -48,9 +48,7 @@ try:
             DB_DATA[prov][dla].append(sch)
             
     PROVINCES = list(DB_DATA.keys())
-    print(f"Loaded {len(PROVINCES)} provinces from Excel.")
 except Exception as e:
-    print("Error loading Excel file:", e)
     DB_DATA = {}
     PROVINCES = []
 
@@ -89,9 +87,8 @@ def init_db():
 
 try:
     init_db()
-    print("Connected to Supabase PostgreSQL successfully!")
 except Exception as e:
-    print("Database Connection Error:", e)
+    pass
 
 class School(BaseModel):
     school_name: str
@@ -241,7 +238,7 @@ async def get_form():
                         
                         <label class="special-toggle">
                             <input type="checkbox" class="has-special" onchange="toggleSpecialPanel(this)"> 
-                            ☑️ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม)
+                            ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม)
                         </label>
                         
                         <div class="special-panel">
@@ -533,18 +530,21 @@ async def view_dashboard(province: str = ""):
             is_locked = row['province'] in lock_dict
             action_btn = '<span style="color: #a0aec0; font-size: 13px;">🔒 ล็อคแล้ว</span>' if is_locked else f'<a href="/edit/{row["id"]}" class="btn-edit">✏️ แก้ไข/ลบ</a>'
             
-            has_sp = False
+            # แก้ไขบั๊กรูปรถเข็นโชว์ทุกโรงเรียน
             rt_sp_count = 0
             nt_sp_count = 0
-            if pd.notna(row['rt_special_json']) and row['rt_special_json'] != '{}':
-                has_sp = True
-                sp_data = json.loads(row['rt_special_json']) if isinstance(row['rt_special_json'], str) else row['rt_special_json']
-                rt_sp_count = sum(sp_data.values())
-            if pd.notna(row['nt_special_json']) and row['nt_special_json'] != '{}':
-                has_sp = True
-                sp_data = json.loads(row['nt_special_json']) if isinstance(row['nt_special_json'], str) else row['nt_special_json']
-                nt_sp_count = sum(sp_data.values())
-                
+            if pd.notna(row['rt_special_json']):
+                val = row['rt_special_json']
+                sp_data = json.loads(val) if isinstance(val, str) else val
+                if isinstance(sp_data, dict):
+                    rt_sp_count = sum(sp_data.values())
+            if pd.notna(row['nt_special_json']):
+                val = row['nt_special_json']
+                sp_data = json.loads(val) if isinstance(val, str) else val
+                if isinstance(sp_data, dict):
+                    nt_sp_count = sum(sp_data.values())
+                    
+            has_sp = (rt_sp_count > 0) or (nt_sp_count > 0)
             sp_badge = f'<span style="color: #d69e2e; font-size: 12px; margin-left: 5px;" title="มีเด็กพิเศษ RT {rt_sp_count} คน / NT {nt_sp_count} คน">♿</span>' if has_sp else ''
 
             table_html += f'''
@@ -749,6 +749,7 @@ async def export_data(key: str = ""):
     current_dla = None
     row_num = 1
     excel_row = 6 
+    prov_start_row = 6
 
     for index, row in df.iterrows():
         prov = row['province']
@@ -759,8 +760,20 @@ async def export_data(key: str = ""):
         prov_dla_key = f"{prov}|{dla}"
         
         if prov != current_province:
+            if current_province is not None:
+                export_rows.append({
+                    'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
+                    'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
+                    'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
+                    'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
+                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})"
+                })
+                excel_row += 1
+
             current_province = prov
             current_dla = None
+            prov_start_row = excel_row
+            
             pao_rt_budget = 10000 if prov_status[prov]['rt_student_count'] > 0 else 0
             pao_nt_budget = 10000 if prov_status[prov]['nt_student_count'] > 0 else 0
             total_pao_budget = pao_rt_budget + pao_nt_budget
@@ -793,16 +806,27 @@ async def export_data(key: str = ""):
         row_num += 1
         excel_row += 1
 
+    if current_province is not None:
+        export_rows.append({
+            'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
+            'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
+            'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
+            'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
+            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})"
+        })
+        excel_row += 1
+
     export_rows.append({
-        'A': 'รวมทั้งสิ้น', 'B': '', 'C': f"=SUM(C6:C{excel_row-1})", 'D': f"=SUM(D6:D{excel_row-1})",
-        'E': f"=SUM(E6:E{excel_row-1})", 'F': f"=SUM(F6:F{excel_row-1})", 'G': f"=SUM(G6:G{excel_row-1})",
-        'H': f"=SUM(H6:H{excel_row-1})", 'I': f"=SUM(I6:I{excel_row-1})"
+        'A': 'รวมทั้งสิ้น', 'B': '', 
+        'C': f"=SUM(C6:C{excel_row-1})/2", 'D': f"=SUM(D6:D{excel_row-1})/2",
+        'E': f"=SUM(E6:E{excel_row-1})/2", 'F': f"=SUM(F6:F{excel_row-1})/2", 
+        'G': f"=SUM(G6:G{excel_row-1})/2", 'H': f"=SUM(H6:H{excel_row-1})/2", 
+        'I': f"=SUM(I6:I{excel_row-1})/2"
     })
 
     df_export = pd.DataFrame(export_rows)
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
-    # --- เตรียมข้อมูลเด็กพิเศษ (Sheet 2) แบบจัดหน้าสวยงาม ---
     raw_rows = []
     def extract_sp_total(json_data):
         if not json_data or json_data == '{}': return 0
@@ -900,21 +924,40 @@ async def export_data(key: str = ""):
         
         last_row = len(export_rows) + 5
         for row in range(6, last_row + 1):
+            cell_A = worksheet.cell(row=row, column=1)
+            is_prov_total = (cell_A.value == 'SUBTOTAL')
+            is_grand_total = (cell_A.value == 'รวมทั้งสิ้น')
+            if is_prov_total:
+                cell_A.value = ''
+
             for col in range(1, 10):
                 cell = worksheet.cell(row=row, column=col)
                 cell.border = thin_border
-                if col == 1:
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
-                elif col == 2:
-                    cell.alignment = Alignment(horizontal='left', vertical='center')
+                
+                if is_prov_total:
+                    cell.font = Font(bold=True, color="003366")
+                    cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
+                    if col > 2:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        cell.number_format = '#,##0'
+                    else:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif is_grand_total:
+                    cell.font = Font(bold=True)
+                    cell.fill = total_fill
+                    if col > 2:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        cell.number_format = '#,##0'
+                    else:
+                        cell.alignment = Alignment(horizontal='center' if col==1 else 'right', vertical='center')
                 else:
-                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                    cell.number_format = '#,##0'
-
-        for col in range(1, 10):
-            cell = worksheet.cell(row=last_row, column=col)
-            cell.font = Font(bold=True)
-            cell.fill = total_fill
+                    if col == 1:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                    elif col == 2:
+                        cell.alignment = Alignment(horizontal='left', vertical='center')
+                    else:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        cell.number_format = '#,##0'
             
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
@@ -972,3 +1015,205 @@ async def export_data(key: str = ""):
                     cell.font = Font(color="CCCCCC")
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
+
+@app.get("/edit/{school_id}", response_class=HTMLResponse)
+async def edit_page(school_id: int):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM school_data WHERE id=%s", (school_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row: return HTMLResponse("<h2>ไม่พบข้อมูล</h2>")
+    
+    prov = row[1]
+    if is_province_locked(prov):
+        return HTMLResponse(f"<script>alert('จังหวัด {prov} ถูกล็อคแล้ว ไม่สามารถแก้ไขได้'); window.location.href='/dashboard?province={prov}';</script>")
+
+    rt_sp_data = json.loads(row[6]) if isinstance(row[6], str) else (row[6] or {})
+    nt_sp_data = json.loads(row[7]) if isinstance(row[7], str) else (row[7] or {})
+    
+    has_special = bool(rt_sp_data) or bool(nt_sp_data)
+    checked_str = "checked" if has_special else ""
+    panel_display = "block" if has_special else "none"
+
+    def get_sp_val(data_dict, key):
+        return data_dict.get(key, 0)
+        
+    rt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="rt_sp_{cid}" class="sp-input rt-sp-{cid}" min="0" value="{get_sp_val(rt_sp_data, cid)}" oninput="calcSpecial(\'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
+    nt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="nt_sp_{cid}" class="sp-input nt-sp-{cid}" min="0" value="{get_sp_val(nt_sp_data, cid)}" oninput="calcSpecial(\'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
+
+    html_content = f'''<!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="utf-8">
+        <title>แก้ไขข้อมูลโรงเรียน</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+        <style>
+            body {{ font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; padding: 20px; }}
+            .container {{ max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
+            h2 {{ text-align: center; color: #2b6cb0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }}
+            label {{ font-weight: 500; display: block; margin-bottom: 5px; font-size: 14px; }}
+            input, select {{ width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }}
+            .flex-row {{ display: flex; gap: 15px; }}
+            .flex-row > div {{ flex: 1; }}
+            
+            .special-toggle {{ background: #ebf8ff; padding: 10px 15px; border-radius: 6px; display: inline-block; cursor: pointer; margin-bottom: 15px; width: 100%; box-sizing: border-box; font-weight: 500; }}
+            .special-toggle input {{ width: auto; margin-right: 10px; transform: scale(1.2); }}
+            .special-panel {{ display: {panel_display}; padding-top: 15px; border-top: 1px dashed #cbd5e0; }}
+            .sp-grid {{ display: flex; gap: 20px; }}
+            .sp-col {{ flex: 1; background: #fdfaf4; padding: 15px; border-radius: 8px; border: 1px solid #f6e05e; }}
+            .sp-col-title {{ font-weight: 600; text-align: center; color: #b7791f; margin-bottom: 10px; border-bottom: 1px solid #fbd38d; padding-bottom: 5px; }}
+            .sp-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }}
+            .sp-row label {{ font-size: 13px; font-weight: 400; margin-bottom: 0; flex: 2; }}
+            .sp-row input {{ flex: 1; padding: 4px 8px; text-align: center; margin-bottom: 0; }}
+            .sp-summary {{ margin-top: 10px; padding: 8px; background: white; border-radius: 4px; text-align: center; font-size: 14px; font-weight: 600; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }}
+            .error-text {{ color: #e53e3e; font-size: 13px; margin-top: 5px; display: none; font-weight: 500; text-align: center; }}
+            
+            .btn-group {{ display: flex; justify-content: space-between; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; }}
+            .btn {{ padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: 600; font-size: 15px; text-decoration: none; text-align: center; }}
+            .btn-save {{ background-color: #3182ce; color: white; flex: 2; margin-right: 10px; }}
+            .btn-del {{ background-color: #e53e3e; color: white; flex: 1; margin-right: 10px; }}
+            .btn-back {{ background-color: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; flex: 1; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>✏️ แก้ไขข้อมูลโรงเรียน</h2>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; color: #4a5568;">
+                <strong>จังหวัด:</strong> {row[1]} <br>
+                <strong>อปท. ต้นสังกัด:</strong> {row[2]}
+            </div>
+            
+            <form action="/update/{school_id}" method="post" onsubmit="return validateForm()">
+                <label>ชื่อโรงเรียน</label>
+                <input type="text" name="school_name" value="{row[3]}" required>
+                
+                <div class="flex-row">
+                    <div>
+                        <label>ยอด นร. ป.1 (RT) รวม</label>
+                        <input type="number" id="rt_count" name="rt_count" min="0" value="{row[4]}" oninput="calcSpecial('rt')" required>
+                    </div>
+                    <div>
+                        <label>ยอด นร. ป.3 (NT) รวม</label>
+                        <input type="number" id="nt_count" name="nt_count" min="0" value="{row[5]}" oninput="calcSpecial('nt')" required>
+                    </div>
+                </div>
+                
+                <label class="special-toggle">
+                    <input type="checkbox" name="has_special" id="has_special" {checked_str} onchange="toggleSpecialPanel(this)"> 
+                    ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม)
+                </label>
+                
+                <div class="special-panel" id="special_panel">
+                    <div class="sp-grid">
+                        <div class="sp-col">
+                            <div class="sp-col-title">ระบุประเภทพิเศษ ป.1 (RT)</div>
+                            {rt_inputs}
+                            <div class="error-text" id="rt_error">❌ ยอดเด็กพิเศษรวมกัน มากกว่ายอดทั้งหมด!</div>
+                            <div class="sp-summary" id="rt_summary">จำนวนเด็กปกติ: <span id="rt_normal_num">0</span> คน</div>
+                        </div>
+                        <div class="sp-col">
+                            <div class="sp-col-title">ระบุประเภทพิเศษ ป.3 (NT)</div>
+                            {nt_inputs}
+                            <div class="error-text" id="nt_error">❌ ยอดเด็กพิเศษรวมกัน มากกว่ายอดทั้งหมด!</div>
+                            <div class="sp-summary" id="nt_summary">จำนวนเด็กปกติ: <span id="nt_normal_num">0</span> คน</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-save">💾 บันทึกการแก้ไข</button>
+                    <a href="/delete/{school_id}" class="btn btn-del" onclick="return confirm('ยืนยันการลบข้อมูลโรงเรียนนี้?');">🗑️ ลบทิ้ง</a>
+                    <a href="/dashboard?province={row[1]}" class="btn btn-back">ยกเลิก</a>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            function toggleSpecialPanel(cb) {{
+                const panel = document.getElementById('special_panel');
+                panel.style.display = cb.checked ? 'block' : 'none';
+                if(!cb.checked) {{
+                    document.querySelectorAll('.sp-input').forEach(inp => inp.value = 0);
+                    calcSpecial('rt');
+                    calcSpecial('nt');
+                }}
+            }}
+
+            function calcSpecial(type) {{
+                const totalInput = document.getElementById(type + '_count');
+                const total = parseInt(totalInput.value) || 0;
+                
+                let spTotal = 0;
+                document.querySelectorAll('.' + type + '-sp-t1, .' + type + '-sp-t2, .' + type + '-sp-t3, .' + type + '-sp-t4, .' + type + '-sp-t5, .' + type + '-sp-t6, .' + type + '-sp-t7, .' + type + '-sp-t8, .' + type + '-sp-t9').forEach(inp => {{
+                    spTotal += parseInt(inp.value) || 0;
+                }});
+
+                const normalCount = total - spTotal;
+                const summaryBox = document.getElementById(type + '_summary');
+                const errorBox = document.getElementById(type + '_error');
+                
+                if(normalCount < 0) {{
+                    summaryBox.style.display = 'none';
+                    errorBox.style.display = 'block';
+                    totalInput.style.borderColor = '#e53e3e';
+                }} else {{
+                    summaryBox.style.display = 'block';
+                    errorBox.style.display = 'none';
+                    totalInput.style.borderColor = '#cbd5e0';
+                    document.getElementById(type + '_normal_num').innerText = normalCount;
+                }}
+            }}
+            
+            function validateForm() {{
+                if(document.getElementById('rt_error').style.display === 'block' || document.getElementById('nt_error').style.display === 'block') {{
+                    alert('❌ มียอดเด็กพิเศษรวมกันมากกว่ายอดนักเรียนทั้งหมด กรุณาตรวจสอบตัวเลขอีกครั้ง');
+                    return false;
+                }}
+                return true;
+            }}
+            
+            window.onload = () => {{
+                calcSpecial('rt');
+                calcSpecial('nt');
+            }};
+        </script>
+    </body>
+    </html>'''
+    return HTMLResponse(content=html_content)
+
+@app.post("/update/{school_id}")
+async def update_data(school_id: int, request: Request):
+    form_data = await request.form()
+    school_name = form_data.get("school_name")
+    rt_count = int(form_data.get("rt_count", 0))
+    nt_count = int(form_data.get("nt_count", 0))
+    has_special = form_data.get("has_special") == "on"
+    
+    rt_sp = {}
+    nt_sp = {}
+    
+    if has_special:
+        for cid, _ in SPECIAL_CATEGORIES:
+            rt_val = int(form_data.get(f"rt_sp_{cid}", 0))
+            nt_val = int(form_data.get(f"nt_sp_{cid}", 0))
+            if rt_val > 0: rt_sp[cid] = rt_val
+            if nt_val > 0: nt_sp[cid] = nt_val
+            
+    rt_json = json.dumps(rt_sp)
+    nt_json = json.dumps(nt_sp)
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT province FROM school_data WHERE id=%s", (school_id,))
+    prov = c.fetchone()[0]
+    
+    c.execute('''UPDATE school_data 
+                 SET school_name=%s, rt_student_count=%s, nt_student_count=%s, rt_special_json=%s, nt_special_json=%s
+                 WHERE id=%s''', 
+              (school_name, rt_count, nt_count, rt_json, nt_json, school_id))
+    conn.commit()
+    conn.close()
+    
+    return RedirectResponse(url=f"/dashboard?province={prov}", status_code=303)
