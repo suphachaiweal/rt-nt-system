@@ -48,7 +48,9 @@ try:
             DB_DATA[prov][dla].append(sch)
             
     PROVINCES = list(DB_DATA.keys())
+    print(f"Loaded {len(PROVINCES)} provinces from Excel.")
 except Exception as e:
+    print("Error loading Excel file:", e)
     DB_DATA = {}
     PROVINCES = []
 
@@ -530,7 +532,6 @@ async def view_dashboard(province: str = ""):
             is_locked = row['province'] in lock_dict
             action_btn = '<span style="color: #a0aec0; font-size: 13px;">🔒 ล็อคแล้ว</span>' if is_locked else f'<a href="/edit/{row["id"]}" class="btn-edit">✏️ แก้ไข/ลบ</a>'
             
-            # แก้ไขบั๊กรูปรถเข็นโชว์ทุกโรงเรียน
             rt_sp_count = 0
             nt_sp_count = 0
             if pd.notna(row['rt_special_json']):
@@ -669,39 +670,130 @@ async def view_dashboard(province: str = ""):
 @app.get("/print/{province}", response_class=HTMLResponse)
 async def print_page(province: str):
     conn = get_db_connection()
-    df = pd.read_sql_query("SELECT dla_name, school_name, rt_student_count, nt_student_count FROM school_data WHERE province=%s ORDER BY dla_name, school_name", conn, params=(province,))
+    df = pd.read_sql_query("SELECT dla_name, school_name, rt_student_count, nt_student_count, rt_special_json, nt_special_json FROM school_data WHERE province=%s ORDER BY dla_name, school_name", conn, params=(province,))
     c = conn.cursor()
     c.execute("SELECT ref_code, locked_at FROM province_locks WHERE province=%s", (province,))
     lock_row = c.fetchone()
     conn.close()
     
     if df.empty: return HTMLResponse("<h2>ไม่พบข้อมูล</h2>")
-    if not lock_row: return HTMLResponse("<h2>ข้อมูลยังไม่ถูกล็อค</h2>")
-        
+    if not lock_row: return HTMLResponse("<h2>ข้อมูลยังไม่ถูกล็อค กรุณากดยืนยันข้อมูลก่อนพิมพ์เอกสาร</h2>")
+    
+    ref_code = lock_row[0]
+    
+    def get_sp_total(j_data):
+        if not j_data or j_data == '{}': return 0
+        try:
+            d = json.loads(j_data) if isinstance(j_data, str) else j_data
+            return sum(d.values())
+        except: return 0
+
     table_rows = ""
-    total_rt, total_nt, row_num = 0, 0, 1
+    sum_rt_all, sum_rt_norm, sum_rt_sp = 0, 0, 0
+    sum_nt_all, sum_nt_norm, sum_nt_sp = 0, 0, 0
+    row_num = 1
     current_dla = None
     
     for index, row in df.iterrows():
         dla_display = row['dla_name'] if row['dla_name'] != current_dla else ""
         if row['dla_name'] != current_dla: current_dla = row['dla_name']
-        table_rows += f'<tr><td class="center">{row_num}</td><td>{dla_display}</td><td>{row["school_name"]}</td><td class="center">{row["rt_student_count"]}</td><td class="center">{row["nt_student_count"]}</td></tr>'
-        row_num += 1; total_rt += row['rt_student_count']; total_nt += row['nt_student_count']
+        
+        rt_all = row['rt_student_count']
+        nt_all = row['nt_student_count']
+        rt_sp = get_sp_total(row['rt_special_json'])
+        nt_sp = get_sp_total(row['nt_special_json'])
+        rt_norm = rt_all - rt_sp
+        nt_norm = nt_all - nt_sp
+        
+        sum_rt_all += rt_all; sum_rt_norm += rt_norm; sum_rt_sp += rt_sp
+        sum_nt_all += nt_all; sum_nt_norm += nt_norm; sum_nt_sp += nt_sp
+        
+        table_rows += f'''
+        <tr>
+            <td class="center">{row_num}</td>
+            <td>{dla_display}</td>
+            <td>{row["school_name"]}</td>
+            <td class="center" style="font-weight:bold;">{rt_all}</td>
+            <td class="center" style="color:#555;">{rt_norm}</td>
+            <td class="center" style="color:#b7791f;">{rt_sp}</td>
+            <td class="center" style="font-weight:bold;">{nt_all}</td>
+            <td class="center" style="color:#555;">{nt_norm}</td>
+            <td class="center" style="color:#b7791f;">{nt_sp}</td>
+        </tr>'''
+        row_num += 1
 
     html_content = f'''<!DOCTYPE html>
-    <html lang="th"><head><meta charset="utf-8"><title>เอกสารรับรอง {province}</title>
+    <html lang="th"><head><meta charset="utf-8"><title>เอกสารรับรองข้อมูล จังหวัด{province}</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>body{{font-family:'Sarabun',sans-serif;}} table{{width:100%; border-collapse:collapse;}} th,td{{border:1px solid black; padding:8px;}} .center{{text-align:center;}}</style>
+    <style>
+        body {{ font-family:'Sarabun',sans-serif; font-size: 13px; color: #000; }}
+        table {{ width:100%; border-collapse:collapse; margin-top: 15px; font-size: 12px; }}
+        th, td {{ border:1px solid black; padding:5px 8px; }}
+        th {{ background-color: #f2f2f2; text-align: center; font-weight: 600; }}
+        .center {{ text-align:center; }}
+        .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 12px; color: #333; }}
+        @media print {{
+            @page {{ margin: 1cm; }}
+            body {{ -webkit-print-color-adjust: exact; }}
+            .no-print {{ display: none; }}
+        }}
+    </style>
     </head><body>
-    <div style="max-width:800px; margin:auto;">
-        <h3 style="text-align:center;">รายละเอียดจำนวนนักเรียน (RT/NT) ปีการศึกษา 2569<br>จังหวัด{province}</h3>
-        <table><thead><tr><th>ลำดับ</th><th>อปท.</th><th>ชื่อโรงเรียน</th><th>ป.1 (RT)</th><th>ป.3 (NT)</th></tr></thead>
-        <tbody>{table_rows}<tr><td colspan="3" style="text-align:right;">รวมทั้งสิ้น</td><td class="center">{total_rt}</td><td class="center">{total_nt}</td></tr></tbody></table>
-        <div style="margin-top:50px; text-align:right; padding-right:50px;">
+    <div style="max-width:900px; margin:auto;">
+        <div class="no-print" style="margin-bottom: 20px; text-align: center;">
+            <button onclick="window.print()" style="background: #3182ce; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-family: Sarabun; font-size: 16px;">🖨️ กดเพื่อพิมพ์เอกสารนี้</button>
+        </div>
+        
+        <div class="ref-box">รหัสอ้างอิงเอกสาร: {ref_code}</div>
+        <div style="clear: both;"></div>
+        
+        <h3 style="text-align:center; margin-top: 0;">รายละเอียดจำนวนนักเรียนที่เข้ารับการประเมินคุณภาพผู้เรียน (RT/NT)<br>ประจำปีการศึกษา 2569<br>จังหวัด{province}</h3>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 5%;">ลำดับ</th>
+                    <th rowspan="2" style="width: 25%;">องค์กรปกครองส่วนท้องถิ่น</th>
+                    <th rowspan="2" style="width: 30%;">ชื่อโรงเรียน</th>
+                    <th colspan="3">ป.1 (RT)</th>
+                    <th colspan="3">ป.3 (NT)</th>
+                </tr>
+                <tr>
+                    <th style="width: 6%;">รวม</th>
+                    <th style="width: 6%;">ปกติ</th>
+                    <th style="width: 6%;">พิเศษ</th>
+                    <th style="width: 6%;">รวม</th>
+                    <th style="width: 6%;">ปกติ</th>
+                    <th style="width: 6%;">พิเศษ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {table_rows}
+                <tr style="background-color: #f9f9f9; font-weight: bold;">
+                    <td colspan="3" style="text-align:right; padding-right: 15px;">รวมทั้งสิ้น</td>
+                    <td class="center">{sum_rt_all}</td>
+                    <td class="center">{sum_rt_norm}</td>
+                    <td class="center">{sum_rt_sp}</td>
+                    <td class="center">{sum_nt_all}</td>
+                    <td class="center">{sum_nt_norm}</td>
+                    <td class="center">{sum_nt_sp}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top:40px; float: right; text-align:center; padding-right:20px;">
+            <p style="margin-bottom: 30px;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
             <p>(ลงชื่อ)........................................................</p>
+            <p>(........................................................)</p>
+            <p>ตำแหน่ง........................................................</p>
             <p>วันที่........./................./.............</p>
         </div>
-    </div></body></html>'''
+        <div style="clear: both;"></div>
+    </div>
+    <script>
+        window.onload = function() {{ window.print(); }};
+    </script>
+    </body></html>'''
     return HTMLResponse(content=html_content)
 
 @app.post("/upload/{province}")
@@ -766,7 +858,8 @@ async def export_data(key: str = ""):
                     'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
                     'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
                     'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})"
+                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
+                    'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
                 })
                 excel_row += 1
 
@@ -780,7 +873,8 @@ async def export_data(key: str = ""):
             
             export_rows.append({
                 'A': row_num, 'B': f"{prov}", 'C': None, 'D': None, 'E': None, 'F': None,
-                'G': None, 'H': total_pao_budget, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
+                'G': None, 'H': total_pao_budget, 
+                'I': pao_rt_budget, 'J': pao_nt_budget, 'K': f"=SUM(I{excel_row},J{excel_row})"
             })
             row_num += 1
             excel_row += 1
@@ -793,15 +887,18 @@ async def export_data(key: str = ""):
             
             export_rows.append({
                 'A': row_num, 'B': f"  {dla}", 'C': None, 'D': None, 'E': None, 'F': None,
-                'G': total_dla_budget, 'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
+                'G': total_dla_budget, 'H': None, 
+                'I': dla_rt_budget, 'J': dla_nt_budget, 'K': f"=SUM(I{excel_row},J{excel_row})"
             })
             row_num += 1
             excel_row += 1
             
         export_rows.append({
-            'A': row_num, 'B': f"    - {sch}", 'C': rt_c, 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)",
+            'A': row_num, 'B': f"    - {sch}", 
+            'C': rt_c, 'D': f"=IF(C{excel_row}>0, 250+(C{excel_row}*12), 0)",
             'E': nt_c, 'F': f"=IF(E{excel_row}>0, 250+(E{excel_row}*14), 0)",
-            'G': None, 'H': None, 'I': f"=SUM(D{excel_row},F{excel_row},G{excel_row},H{excel_row})"
+            'G': None, 'H': None, 
+            'I': f"=D{excel_row}", 'J': f"=F{excel_row}", 'K': f"=SUM(I{excel_row},J{excel_row})"
         })
         row_num += 1
         excel_row += 1
@@ -812,7 +909,8 @@ async def export_data(key: str = ""):
             'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
             'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
             'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})"
+            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
+            'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
         })
         excel_row += 1
 
@@ -821,7 +919,8 @@ async def export_data(key: str = ""):
         'C': f"=SUM(C6:C{excel_row-1})/2", 'D': f"=SUM(D6:D{excel_row-1})/2",
         'E': f"=SUM(E6:E{excel_row-1})/2", 'F': f"=SUM(F6:F{excel_row-1})/2", 
         'G': f"=SUM(G6:G{excel_row-1})/2", 'H': f"=SUM(H6:H{excel_row-1})/2", 
-        'I': f"=SUM(I6:I{excel_row-1})/2"
+        'I': f"=SUM(I6:I{excel_row-1})/2", 'J': f"=SUM(J6:J{excel_row-1})/2", 
+        'K': f"=SUM(K6:K{excel_row-1})/2"
     })
 
     df_export = pd.DataFrame(export_rows)
@@ -869,17 +968,17 @@ async def export_data(key: str = ""):
         df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
         worksheet = writer.sheets['งบประมาณ_RT_NT']
         
-        worksheet.merge_cells('A1:I1')
+        worksheet.merge_cells('A1:K1')
         worksheet['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
         worksheet['A1'].font = Font(bold=True, size=12)
         worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
         
-        worksheet.merge_cells('A2:I2')
+        worksheet.merge_cells('A2:K2')
         worksheet['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
         worksheet['A2'].font = Font(bold=True, size=12)
         worksheet['A2'].alignment = Alignment(horizontal='center', vertical='center')
         
-        worksheet.merge_cells('A3:I3')
+        worksheet.merge_cells('A3:K3')
         worksheet['A3'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569'
         worksheet['A3'].font = Font(bold=True, size=12)
         worksheet['A3'].alignment = Alignment(horizontal='center', vertical='center')
@@ -888,7 +987,9 @@ async def export_data(key: str = ""):
         worksheet.merge_cells('B4:B5'); worksheet['B4'] = 'จังหวัด/อปท./โรงเรียน'
         worksheet.merge_cells('G4:G5'); worksheet['G4'] = 'งบ อปท.\n(RT 1,000 / NT 1,000)'
         worksheet.merge_cells('H4:H5'); worksheet['H4'] = 'งบ สถจ.\n(RT 10,000 / NT 10,000)'
-        worksheet.merge_cells('I4:I5'); worksheet['I4'] = 'รวมทั้งสิ้น\n(บาท)'
+        worksheet.merge_cells('I4:I5'); worksheet['I4'] = 'สรุปงบ RT\n(บาท)'
+        worksheet.merge_cells('J4:J5'); worksheet['J4'] = 'สรุปงบ NT\n(บาท)'
+        worksheet.merge_cells('K4:K5'); worksheet['K4'] = 'รวมทั้งสิ้น\n(บาท)'
         
         worksheet.merge_cells('C4:D4')
         worksheet['C4'] = 'การสอบ RT (ชั้น ป.1)'
@@ -906,16 +1007,18 @@ async def export_data(key: str = ""):
         worksheet.column_dimensions['D'].width = 25
         worksheet.column_dimensions['E'].width = 15
         worksheet.column_dimensions['F'].width = 25
-        worksheet.column_dimensions['G'].width = 25
-        worksheet.column_dimensions['H'].width = 25
-        worksheet.column_dimensions['I'].width = 20
+        worksheet.column_dimensions['G'].width = 20
+        worksheet.column_dimensions['H'].width = 22
+        worksheet.column_dimensions['I'].width = 15
+        worksheet.column_dimensions['J'].width = 15
+        worksheet.column_dimensions['K'].width = 18
 
         header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
         total_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         
         for row in range(4, 6):
-            for col in range(1, 10):
+            for col in range(1, 12):
                 cell = worksheet.cell(row=row, column=col)
                 cell.fill = header_fill
                 cell.font = Font(bold=True)
@@ -930,7 +1033,7 @@ async def export_data(key: str = ""):
             if is_prov_total:
                 cell_A.value = ''
 
-            for col in range(1, 10):
+            for col in range(1, 12):
                 cell = worksheet.cell(row=row, column=col)
                 cell.border = thin_border
                 
@@ -957,7 +1060,8 @@ async def export_data(key: str = ""):
                         cell.alignment = Alignment(horizontal='left', vertical='center')
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
-                        cell.number_format = '#,##0'
+                        if cell.value is not None:
+                            cell.number_format = '#,##0'
             
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
