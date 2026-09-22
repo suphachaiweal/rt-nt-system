@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 pandas
-numpy
 openpyxl
 python-multipart
 xlrd
+psycopg2-binary
+supabase
