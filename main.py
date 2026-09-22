@@ -20,7 +20,7 @@ app = FastAPI()
 # 🛑 กรุณาแก้ไขข้อมูล 2 บรรทัดนี้ให้เป็นของคุณ 🛑
 # ==========================================
 SUPABASE_URL = "https://svrtsuffmpoaeaozuihv.supabase.co" 
-SUPABASE_KEY = "sb_publishable_S9c4kd6Ylxm2DUdzCOOOTQ_VVJV1GUY"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cnRzdWZmbXBvYWVhb3p1aWh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDA0MDYwNiwiZXhwIjoyMTA1NjE2NjA2fQ.FCVn1kORiSFBafWeAEeC1bOz5-5ioPbrXvaCVfL6uQM"
 DB_URL = "postgresql://postgres.svrtsuffmpoaeaozuihv:DlaAdmin2569Supabase@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
 # ==========================================
 
@@ -665,7 +665,7 @@ async def print_page(province: str):
 @app.post("/upload/{province}")
 async def upload_file(province: str, file: UploadFile = File(...)):
     file_ext = os.path.splitext(file.filename)[1]
-    save_filename = f"signed_{province}_{datetime.now().strftime('%Y%m%d%H%M%S')}{file_ext}"
+    save_filename = f"signed_{datetime.now().strftime('%Y%m%d%H%M%S')}{file_ext}"
     
     file_bytes = await file.read()
     try:
