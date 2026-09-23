@@ -603,6 +603,9 @@ async def view_dashboard(province: str = ""):
             action_html += f'''
                     </div>
                 </div>
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #cbd5e0; text-align: right;">
+                    <button onclick="unlockProv('{province}')" style="background: transparent; color: #e53e3e; border: 1px solid #e53e3e; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">🔓 ปลดล็อคข้อมูล (สำหรับกรม)</button>
+                </div>
             </div>
             '''
 
@@ -661,6 +664,10 @@ async def view_dashboard(province: str = ""):
                 e.preventDefault();
                 let pass = prompt("รหัสผ่านดาวน์โหลด Excel:");
                 if (pass) window.location.href = "/export?key=" + encodeURIComponent(pass);
+            }}
+            function unlockProv(prov) {{
+                let pass = prompt("รหัสผ่านสำหรับปลดล็อคข้อมูล:");
+                if (pass) window.location.href = "/unlock/" + encodeURIComponent(prov) + "?key=" + encodeURIComponent(pass);
             }}
         </script>
     </body>
@@ -800,12 +807,13 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top:50px; float: right; font-size: 14px; width: 350px; color: #000;">
-            <div style="margin-bottom: 20px;">(ลงชื่อ)............................................................</div>
-            <div style="margin-bottom: 20px; padding-left: 30px;">(.............................................................)</div>
-            <div style="margin-bottom: 20px;">ตำแหน่ง..........................................................</div>
+        <div style="margin-top:40px; float: right; font-size: 14px; width: 350px; color: #000;">
+            <div style="margin-bottom: 20px; font-weight: 500; text-align: center;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 20px; text-align: left;">(ลงชื่อ)............................................................</div>
+            <div style="margin-bottom: 20px; text-align: left; padding-left: 30px;">(.............................................................)</div>
+            <div style="margin-bottom: 20px; text-align: left;">ตำแหน่ง..........................................................</div>
             <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px;">วันที่ ............./............................/.................</div>
+            <div style="margin-bottom: 15px; text-align: left;">วันที่ ............./............................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
