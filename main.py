@@ -55,6 +55,14 @@ except Exception as e:
 async def get_school_data():
     return JSONResponse(content=DB_DATA)
 
+# API สำหรับดึงข้อมูลเดิมที่เคยบันทึกไว้ของจังหวัดนั้นๆ มาแสดงบนหน้าฟอร์ม
+@app.get("/api/saved_schools")
+async def get_saved_schools(province: str):
+    conn = get_db_connection()
+    df = pd.read_sql_query("SELECT dla_name, school_name, rt_student_count, nt_student_count FROM school_data WHERE province=%s ORDER BY dla_name, school_name", conn, params=(province,))
+    conn.close()
+    return JSONResponse(content=df.to_dict('records'))
+
 def get_db_connection():
     return psycopg2.connect(DB_URL)
 
@@ -131,14 +139,6 @@ SPECIAL_CATEGORIES = [
     ("t4", "ร่างกาย"), ("t5", "เรียนรู้ (LD)"), ("t6", "พูด/ภาษา"),
     ("t7", "พฤติกรรม"), ("t8", "ออทิสติก"), ("t9", "พิการซ้อน")
 ]
-
-# API สำหรับดึงข้อมูลเดิมที่เคยบันทึกไว้ของจังหวัดนั้นๆ มาแสดงบนหน้าฟอร์ม
-@app.get("/api/saved_schools")
-async def get_saved_schools(province: str):
-    conn = get_db_connection()
-    df = pd.read_sql_query("SELECT dla_name, school_name, rt_student_count, nt_student_count FROM school_data WHERE province=%s ORDER BY dla_name, school_name", conn, params=(province,))
-    conn.close()
-    return JSONResponse(content=df.to_dict('records'))
 
 @app.get("/", response_class=HTMLResponse)
 async def get_form():
@@ -842,8 +842,6 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
-        .sig-container {{ margin-top: 40px; float: right; width: 350px; font-size: 14px; font-family: 'Sarabun', sans-serif; }}
-        .sig-row {{ margin-bottom: 20px; text-align: center; width: 100%; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -889,13 +887,13 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div class="sig-container">
-            <div class="sig-row" style="font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <div class="sig-row">(ลงชื่อ)................................................................................</div>
-            <div class="sig-row">(.................................................................................)</div>
-            <div class="sig-row">ตำแหน่ง..............................................................................</div>
-            <div class="sig-row" style="font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div class="sig-row">วันที่ ............./............................................/.................</div>
+        <div style="margin-top:40px; float: right; font-size: 14px; width: 350px; color: #000;">
+            <div style="margin-bottom: 40px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 20px; text-align: center;">(ลงชื่อ)............................................................</div>
+            <div style="margin-bottom: 20px; text-align: center;">(.............................................................)</div>
+            <div style="margin-bottom: 20px; text-align: center;">ตำแหน่ง..........................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 15px; text-align: center;">วันที่ ............./............................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
