@@ -668,6 +668,9 @@ async def print_page(province: str):
         try: return json.loads(j_data) if isinstance(j_data, str) else j_data
         except: return {}
 
+    def f_num(val):
+        return val if val and val > 0 else ''
+
     table_rows = ""
     sum_rt = {'all':0, 'norm':0, 't1':0,'t2':0,'t3':0,'t4':0,'t5':0,'t6':0,'t7':0,'t8':0,'t9':0}
     sum_nt = {'all':0, 'norm':0, 't1':0,'t2':0,'t3':0,'t4':0,'t5':0,'t6':0,'t7':0,'t8':0,'t9':0}
@@ -704,21 +707,21 @@ async def print_page(province: str):
             <td class="truncate">{dla_display}</td>
             <td class="truncate">{row["school_name"]}</td>
             
-            <td class="center" style="font-weight:bold; background:#f0f8ff;">{rt_all}</td>
-            <td class="center">{rt_norm}</td>
-            <td class="center sp-col">{rt_sp_d.get('t1', '')}</td><td class="center sp-col">{rt_sp_d.get('t2', '')}</td>
-            <td class="center sp-col">{rt_sp_d.get('t3', '')}</td><td class="center sp-col">{rt_sp_d.get('t4', '')}</td>
-            <td class="center sp-col">{rt_sp_d.get('t5', '')}</td><td class="center sp-col">{rt_sp_d.get('t6', '')}</td>
-            <td class="center sp-col">{rt_sp_d.get('t7', '')}</td><td class="center sp-col">{rt_sp_d.get('t8', '')}</td>
-            <td class="center sp-col">{rt_sp_d.get('t9', '')}</td>
+            <td class="center" style="font-weight:bold; background:#f0f8ff;">{f_num(rt_all)}</td>
+            <td class="center">{f_num(rt_norm)}</td>
+            <td class="center sp-col">{f_num(rt_sp_d.get('t1', 0))}</td><td class="center sp-col">{f_num(rt_sp_d.get('t2', 0))}</td>
+            <td class="center sp-col">{f_num(rt_sp_d.get('t3', 0))}</td><td class="center sp-col">{f_num(rt_sp_d.get('t4', 0))}</td>
+            <td class="center sp-col">{f_num(rt_sp_d.get('t5', 0))}</td><td class="center sp-col">{f_num(rt_sp_d.get('t6', 0))}</td>
+            <td class="center sp-col">{f_num(rt_sp_d.get('t7', 0))}</td><td class="center sp-col">{f_num(rt_sp_d.get('t8', 0))}</td>
+            <td class="center sp-col">{f_num(rt_sp_d.get('t9', 0))}</td>
 
-            <td class="center" style="font-weight:bold; background:#f0faff;">{nt_all}</td>
-            <td class="center">{nt_norm}</td>
-            <td class="center sp-col">{nt_sp_d.get('t1', '')}</td><td class="center sp-col">{nt_sp_d.get('t2', '')}</td>
-            <td class="center sp-col">{nt_sp_d.get('t3', '')}</td><td class="center sp-col">{nt_sp_d.get('t4', '')}</td>
-            <td class="center sp-col">{nt_sp_d.get('t5', '')}</td><td class="center sp-col">{nt_sp_d.get('t6', '')}</td>
-            <td class="center sp-col">{nt_sp_d.get('t7', '')}</td><td class="center sp-col">{nt_sp_d.get('t8', '')}</td>
-            <td class="center sp-col">{nt_sp_d.get('t9', '')}</td>
+            <td class="center" style="font-weight:bold; background:#f0faff;">{f_num(nt_all)}</td>
+            <td class="center">{f_num(nt_norm)}</td>
+            <td class="center sp-col">{f_num(nt_sp_d.get('t1', 0))}</td><td class="center sp-col">{f_num(nt_sp_d.get('t2', 0))}</td>
+            <td class="center sp-col">{f_num(nt_sp_d.get('t3', 0))}</td><td class="center sp-col">{f_num(nt_sp_d.get('t4', 0))}</td>
+            <td class="center sp-col">{f_num(nt_sp_d.get('t5', 0))}</td><td class="center sp-col">{f_num(nt_sp_d.get('t6', 0))}</td>
+            <td class="center sp-col">{f_num(nt_sp_d.get('t7', 0))}</td><td class="center sp-col">{f_num(nt_sp_d.get('t8', 0))}</td>
+            <td class="center sp-col">{f_num(nt_sp_d.get('t9', 0))}</td>
         </tr>'''
         row_num += 1
 
@@ -734,6 +737,7 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
+        .signature-box {{ margin-top: 50px; float: right; font-size: 14px; width: 400px; color: #000; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -771,20 +775,20 @@ async def print_page(province: str):
                 {table_rows}
                 <tr style="background-color: #edf2f7; font-weight: bold; font-size: 11px;">
                     <td colspan="3" style="text-align:right; padding-right: 10px;">รวมทั้งสิ้น</td>
-                    <td class="center">{sum_rt['all']}</td><td class="center">{sum_rt['norm']}</td>
-                    <td class="center sp-col">{sum_rt['t1']}</td><td class="center sp-col">{sum_rt['t2']}</td><td class="center sp-col">{sum_rt['t3']}</td><td class="center sp-col">{sum_rt['t4']}</td><td class="center sp-col">{sum_rt['t5']}</td><td class="center sp-col">{sum_rt['t6']}</td><td class="center sp-col">{sum_rt['t7']}</td><td class="center sp-col">{sum_rt['t8']}</td><td class="center sp-col">{sum_rt['t9']}</td>
-                    <td class="center">{sum_nt['all']}</td><td class="center">{sum_nt['norm']}</td>
-                    <td class="center sp-col">{sum_nt['t1']}</td><td class="center sp-col">{sum_nt['t2']}</td><td class="center sp-col">{sum_nt['t3']}</td><td class="center sp-col">{sum_nt['t4']}</td><td class="center sp-col">{sum_nt['t5']}</td><td class="center sp-col">{sum_nt['t6']}</td><td class="center sp-col">{sum_nt['t7']}</td><td class="center sp-col">{sum_nt['t8']}</td><td class="center sp-col">{sum_nt['t9']}</td>
+                    <td class="center">{f_num(sum_rt['all'])}</td><td class="center">{f_num(sum_rt['norm'])}</td>
+                    <td class="center sp-col">{f_num(sum_rt['t1'])}</td><td class="center sp-col">{f_num(sum_rt['t2'])}</td><td class="center sp-col">{f_num(sum_rt['t3'])}</td><td class="center sp-col">{f_num(sum_rt['t4'])}</td><td class="center sp-col">{f_num(sum_rt['t5'])}</td><td class="center sp-col">{f_num(sum_rt['t6'])}</td><td class="center sp-col">{f_num(sum_rt['t7'])}</td><td class="center sp-col">{f_num(sum_rt['t8'])}</td><td class="center sp-col">{f_num(sum_rt['t9'])}</td>
+                    <td class="center">{f_num(sum_nt['all'])}</td><td class="center">{f_num(sum_nt['norm'])}</td>
+                    <td class="center sp-col">{f_num(sum_nt['t1'])}</td><td class="center sp-col">{f_num(sum_nt['t2'])}</td><td class="center sp-col">{f_num(sum_nt['t3'])}</td><td class="center sp-col">{f_num(sum_nt['t4'])}</td><td class="center sp-col">{f_num(sum_nt['t5'])}</td><td class="center sp-col">{f_num(sum_nt['t6'])}</td><td class="center sp-col">{f_num(sum_nt['t7'])}</td><td class="center sp-col">{f_num(sum_nt['t8'])}</td><td class="center sp-col">{f_num(sum_nt['t9'])}</td>
                 </tr>
             </tbody>
         </table>
         
-        <div style="margin-top:50px; float: right; font-size: 15px; width: 400px; color: #000;">
+        <div class="signature-box">
             <div style="margin-bottom: 20px;">(ลงชื่อ)................................................................................</div>
-            <div style="margin-bottom: 20px; text-align: center; padding-right: 25px;">(........................................................................)</div>
-            <div style="margin-bottom: 10px;">ตำแหน่ง..............................................................................</div>
-            <div style="margin-bottom: 20px; text-align: center; padding-right: 25px;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px;">วันที่................./............................................/...................</div>
+            <div style="margin-bottom: 20px; padding-left: 30px;">(.................................................................................)</div>
+            <div style="margin-bottom: 20px;">ตำแหน่ง..............................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 15px;">วันที่ ............./............................................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -847,7 +851,6 @@ async def export_data(key: str = ""):
         
         if prov != current_province:
             if current_province is not None:
-                # สรุปเฉพาะงบ RT จังหวัดนี้
                 export_rows.append({
                     'A': 'RT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ RT (ป.1)", 
                     'C': None, 'D': None, 'E': None, 'F': None,
@@ -856,7 +859,6 @@ async def export_data(key: str = ""):
                 })
                 excel_row += 1
 
-                # สรุปเฉพาะงบ NT จังหวัดนี้
                 export_rows.append({
                     'A': 'NT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ NT (ป.3)", 
                     'C': None, 'D': None, 'E': None, 'F': None,
@@ -865,7 +867,6 @@ async def export_data(key: str = ""):
                 })
                 excel_row += 1
 
-                # บรรทัดรวมยอดทั้งสิ้นของจังหวัด
                 export_rows.append({
                     'A': 'SUBTOTAL', 'B': f"รวมทั้งสิ้น จังหวัด{current_province}", 
                     'C': f"=SUM(C{prov_start_row}:C{excel_row-3})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-3})",
@@ -913,7 +914,6 @@ async def export_data(key: str = ""):
         })
         row_num += 1; excel_row += 1
 
-    # วนลูปปิดท้ายสำหรับจังหวัดสุดท้าย
     if current_province is not None:
         export_rows.append({
             'A': 'RT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ RT (ป.1)", 
@@ -942,7 +942,6 @@ async def export_data(key: str = ""):
         subtotal_rows.append(excel_row)
         excel_row += 1
 
-    # บรรทัดรวมระดับประเทศ
     def build_sum_formula(col_letter):
         if not subtotal_rows: return 0
         return "=" + "+".join([f"{col_letter}{r}" for r in subtotal_rows])
@@ -958,28 +957,81 @@ async def export_data(key: str = ""):
 
     df_export = pd.DataFrame(export_rows)
     
-    # เตรียมข้อมูลเด็กพิเศษสำหรับ Sheet 2
+    # ---------------------------------------------
+    # จัดเตรียมข้อมูล Sheet 3 (รายงานเด็กพิเศษ) + ซับโททัลรายจังหวัด
+    # ---------------------------------------------
     raw_rows = []
     def ext_sp(j_data):
         if not j_data or j_data == '{}': return {}
         try: return json.loads(j_data) if isinstance(j_data, str) else j_data
         except: return {}
 
+    current_sp_prov = None
     sp_row_num = 1
+    sp_excel_row = 4
+    sp_prov_start = 4
+    
     for index, row in df.iterrows():
+        prov = row['province']
+        
+        if prov != current_sp_prov:
+            if current_sp_prov is not None:
+                raw_rows.append({
+                    0: 'SUBTOTAL', 1: f"รวมยอด จังหวัด{current_sp_prov}", 2: None, 3: None,
+                    4: f"=SUM(E{sp_prov_start}:E{sp_excel_row-1})", 5: f"=SUM(F{sp_prov_start}:F{sp_excel_row-1})", 6: f"=SUM(G{sp_prov_start}:G{sp_excel_row-1})",
+                    7: f"=SUM(H{sp_prov_start}:H{sp_excel_row-1})", 8: f"=SUM(I{sp_prov_start}:I{sp_excel_row-1})", 9: f"=SUM(J{sp_prov_start}:J{sp_excel_row-1})",
+                    10: f"=SUM(K{sp_prov_start}:K{sp_excel_row-1})", 11: f"=SUM(L{sp_prov_start}:L{sp_excel_row-1})", 12: f"=SUM(M{sp_prov_start}:M{sp_excel_row-1})",
+                    13: f"=SUM(N{sp_prov_start}:N{sp_excel_row-1})", 14: f"=SUM(O{sp_prov_start}:O{sp_excel_row-1})", 15: f"=SUM(P{sp_prov_start}:P{sp_excel_row-1})",
+                    16: f"=SUM(Q{sp_prov_start}:Q{sp_excel_row-1})", 17: f"=SUM(R{sp_prov_start}:R{sp_excel_row-1})", 18: f"=SUM(S{sp_prov_start}:S{sp_excel_row-1})",
+                    19: f"=SUM(T{sp_prov_start}:T{sp_excel_row-1})", 20: f"=SUM(U{sp_prov_start}:U{sp_excel_row-1})", 21: f"=SUM(V{sp_prov_start}:V{sp_excel_row-1})",
+                    22: f"=SUM(W{sp_prov_start}:W{sp_excel_row-1})", 23: f"=SUM(X{sp_prov_start}:X{sp_excel_row-1})", 24: f"=SUM(Y{sp_prov_start}:Y{sp_excel_row-1})",
+                    25: f"=SUM(Z{sp_prov_start}:Z{sp_excel_row-1})", 26: f"=SUM(AA{sp_prov_start}:AA{sp_excel_row-1})", 27: f"=SUM(AB{sp_prov_start}:AB{sp_excel_row-1})"
+                })
+                sp_excel_row += 1
+                
+            current_sp_prov = prov
+            sp_prov_start = sp_excel_row
+            
         rt_sp_d = ext_sp(row['rt_special_json'])
         nt_sp_d = ext_sp(row['nt_special_json'])
         rt_sp = sum(rt_sp_d.values())
         nt_sp = sum(nt_sp_d.values())
         
-        raw_rows.append([
-            sp_row_num, row['province'], row['dla_name'], row['school_name'],
-            row['rt_student_count'], row['rt_student_count'] - rt_sp, rt_sp,
-            rt_sp_d.get('t1', 0), rt_sp_d.get('t2', 0), rt_sp_d.get('t3', 0), rt_sp_d.get('t4', 0), rt_sp_d.get('t5', 0), rt_sp_d.get('t6', 0), rt_sp_d.get('t7', 0), rt_sp_d.get('t8', 0), rt_sp_d.get('t9', 0),
-            row['nt_student_count'], row['nt_student_count'] - nt_sp, nt_sp,
-            nt_sp_d.get('t1', 0), nt_sp_d.get('t2', 0), nt_sp_d.get('t3', 0), nt_sp_d.get('t4', 0), nt_sp_d.get('t5', 0), nt_sp_d.get('t6', 0), nt_sp_d.get('t7', 0), nt_sp_d.get('t8', 0), nt_sp_d.get('t9', 0)
-        ])
+        raw_rows.append({
+            0: sp_row_num, 1: row['province'], 2: row['dla_name'], 3: row['school_name'],
+            4: row['rt_student_count'], 5: row['rt_student_count'] - rt_sp, 6: rt_sp,
+            7: rt_sp_d.get('t1', 0), 8: rt_sp_d.get('t2', 0), 9: rt_sp_d.get('t3', 0), 10: rt_sp_d.get('t4', 0), 11: rt_sp_d.get('t5', 0), 12: rt_sp_d.get('t6', 0), 13: rt_sp_d.get('t7', 0), 14: rt_sp_d.get('t8', 0), 15: rt_sp_d.get('t9', 0),
+            16: row['nt_student_count'], 17: row['nt_student_count'] - nt_sp, 18: nt_sp,
+            19: nt_sp_d.get('t1', 0), 20: nt_sp_d.get('t2', 0), 21: nt_sp_d.get('t3', 0), 22: nt_sp_d.get('t4', 0), 23: nt_sp_d.get('t5', 0), 24: nt_sp_d.get('t6', 0), 25: nt_sp_d.get('t7', 0), 26: nt_sp_d.get('t8', 0), 27: nt_sp_d.get('t9', 0)
+        })
         sp_row_num += 1
+        sp_excel_row += 1
+
+    if current_sp_prov is not None:
+        raw_rows.append({
+            0: 'SUBTOTAL', 1: f"รวมยอด จังหวัด{current_sp_prov}", 2: None, 3: None,
+            4: f"=SUM(E{sp_prov_start}:E{sp_excel_row-1})", 5: f"=SUM(F{sp_prov_start}:F{sp_excel_row-1})", 6: f"=SUM(G{sp_prov_start}:G{sp_excel_row-1})",
+            7: f"=SUM(H{sp_prov_start}:H{sp_excel_row-1})", 8: f"=SUM(I{sp_prov_start}:I{sp_excel_row-1})", 9: f"=SUM(J{sp_prov_start}:J{sp_excel_row-1})",
+            10: f"=SUM(K{sp_prov_start}:K{sp_excel_row-1})", 11: f"=SUM(L{sp_prov_start}:L{sp_excel_row-1})", 12: f"=SUM(M{sp_prov_start}:M{sp_excel_row-1})",
+            13: f"=SUM(N{sp_prov_start}:N{sp_excel_row-1})", 14: f"=SUM(O{sp_prov_start}:O{sp_excel_row-1})", 15: f"=SUM(P{sp_prov_start}:P{sp_excel_row-1})",
+            16: f"=SUM(Q{sp_prov_start}:Q{sp_excel_row-1})", 17: f"=SUM(R{sp_prov_start}:R{sp_excel_row-1})", 18: f"=SUM(S{sp_prov_start}:S{sp_excel_row-1})",
+            19: f"=SUM(T{sp_prov_start}:T{sp_excel_row-1})", 20: f"=SUM(U{sp_prov_start}:U{sp_excel_row-1})", 21: f"=SUM(V{sp_prov_start}:V{sp_excel_row-1})",
+            22: f"=SUM(W{sp_prov_start}:W{sp_excel_row-1})", 23: f"=SUM(X{sp_prov_start}:X{sp_excel_row-1})", 24: f"=SUM(Y{sp_prov_start}:Y{sp_excel_row-1})",
+            25: f"=SUM(Z{sp_prov_start}:Z{sp_excel_row-1})", 26: f"=SUM(AA{sp_prov_start}:AA{sp_excel_row-1})", 27: f"=SUM(AB{sp_prov_start}:AB{sp_excel_row-1})"
+        })
+        sp_excel_row += 1
+        
+    raw_rows.append({
+        0: 'GRAND_TOTAL', 1: 'รวมทั้งสิ้น (ทุกจังหวัด)', 2: None, 3: None,
+        4: f"=SUM(E4:E{sp_excel_row-1})/2", 5: f"=SUM(F4:F{sp_excel_row-1})/2", 6: f"=SUM(G4:G{sp_excel_row-1})/2",
+        7: f"=SUM(H4:H{sp_excel_row-1})/2", 8: f"=SUM(I4:I{sp_excel_row-1})/2", 9: f"=SUM(J4:J{sp_excel_row-1})/2",
+        10: f"=SUM(K4:K{sp_excel_row-1})/2", 11: f"=SUM(L4:L{sp_excel_row-1})/2", 12: f"=SUM(M4:M{sp_excel_row-1})/2",
+        13: f"=SUM(N4:N{sp_excel_row-1})/2", 14: f"=SUM(O4:O{sp_excel_row-1})/2", 15: f"=SUM(P4:P{sp_excel_row-1})/2",
+        16: f"=SUM(Q4:Q{sp_excel_row-1})/2", 17: f"=SUM(R4:R{sp_excel_row-1})/2", 18: f"=SUM(S4:S{sp_excel_row-1})/2",
+        19: f"=SUM(T4:T{sp_excel_row-1})/2", 20: f"=SUM(U4:U{sp_excel_row-1})/2", 21: f"=SUM(V4:V{sp_excel_row-1})/2",
+        22: f"=SUM(W4:W{sp_excel_row-1})/2", 23: f"=SUM(X4:X{sp_excel_row-1})/2", 24: f"=SUM(Y4:Y{sp_excel_row-1})/2",
+        25: f"=SUM(Z4:Z{sp_excel_row-1})/2", 26: f"=SUM(AA4:AA{sp_excel_row-1})/2", 27: f"=SUM(AB4:AB{sp_excel_row-1})/2"
+    })
         
     df_raw = pd.DataFrame(raw_rows)
     file_path = "export_rt_nt_2569_calculated.xlsx"
@@ -999,18 +1051,16 @@ async def export_data(key: str = ""):
         ws1.merge_cells('B4:B5'); ws1['B4'] = 'จังหวัด/อปท./โรงเรียน'
         
         ws1.merge_cells('C4:F4'); ws1['C4'] = 'การสอบ RT (ชั้น ป.1)'
-        ws1['C5'] = 'นักเรียน\n(คน)'; ws1['D5'] = 'งบโรงเรียน\n(250+12/คน)'; ws1['E5'] = 'งบ อปท.\n(1,000)'; ws1['F5'] = 'งบ สถจ.\n(10,000)'
+        ws1['C5'] = 'นักเรียน\n(คน)'; ws1['D5'] = 'งบโรงเรียน\n(250+12)'; ws1['E5'] = 'งบ อปท.\n(1,000)'; ws1['F5'] = 'งบ สถจ.\n(10,000)'
         
         ws1.merge_cells('G4:J4'); ws1['G4'] = 'การสอบ NT (ชั้น ป.3)'
-        ws1['G5'] = 'นักเรียน\n(คน)'; ws1['H5'] = 'งบโรงเรียน\n(250+14/คน)'; ws1['I5'] = 'งบ อปท.\n(1,000)'; ws1['J5'] = 'งบ สถจ.\n(10,000)'
+        ws1['G5'] = 'นักเรียน\n(คน)'; ws1['H5'] = 'งบโรงเรียน\n(250+14)'; ws1['I5'] = 'งบ อปท.\n(1,000)'; ws1['J5'] = 'งบ สถจ.\n(10,000)'
         
         ws1.merge_cells('K4:K5'); ws1['K4'] = 'รวมทั้งสิ้น\n(บาท)'
         
         ws1.column_dimensions['A'].width = 8; ws1.column_dimensions['B'].width = 40 
-        ws1.column_dimensions['C'].width = 10; ws1.column_dimensions['D'].width = 16 
-        ws1.column_dimensions['E'].width = 12; ws1.column_dimensions['F'].width = 12 
-        ws1.column_dimensions['G'].width = 10; ws1.column_dimensions['H'].width = 16 
-        ws1.column_dimensions['I'].width = 12; ws1.column_dimensions['J'].width = 12 
+        ws1.column_dimensions['C'].width = 10; ws1.column_dimensions['D'].width = 14; ws1.column_dimensions['E'].width = 12; ws1.column_dimensions['F'].width = 12 
+        ws1.column_dimensions['G'].width = 10; ws1.column_dimensions['H'].width = 14; ws1.column_dimensions['I'].width = 12; ws1.column_dimensions['J'].width = 12 
         ws1.column_dimensions['K'].width = 16
 
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
@@ -1031,32 +1081,26 @@ async def export_data(key: str = ""):
         for r in range(6, len(export_rows) + 6):
             cell_A = ws1.cell(row=r, column=1)
             row_type = cell_A.value
-            
-            if row_type in ['SUBTOTAL', 'RT_TOTAL', 'NT_TOTAL', 'GRAND_TOTAL']:
-                cell_A.value = ''
+            if row_type in ['SUBTOTAL', 'RT_TOTAL', 'NT_TOTAL', 'GRAND_TOTAL']: cell_A.value = ''
 
             for c in range(1, 12):
                 cell = ws1.cell(row=r, column=c)
                 cell.border = thin_border
                 
                 if row_type == 'SUBTOTAL':
-                    cell.font = Font(bold=True, color="003366")
-                    cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
+                    cell.font = Font(bold=True, color="003366"); cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
                     else: cell.alignment = Alignment(horizontal='right', vertical='center')
                 elif row_type == 'RT_TOTAL':
-                    cell.font = Font(bold=True, color="1F497D")
-                    cell.fill = PatternFill(start_color="E9EEF7", end_color="E9EEF7", fill_type="solid")
+                    cell.font = Font(bold=True, color="1F497D"); cell.fill = PatternFill(start_color="E9EEF7", end_color="E9EEF7", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
                     else: cell.alignment = Alignment(horizontal='left', vertical='center')
                 elif row_type == 'NT_TOTAL':
-                    cell.font = Font(bold=True, color="385D2A")
-                    cell.fill = PatternFill(start_color="F0F6EA", end_color="F0F6EA", fill_type="solid")
+                    cell.font = Font(bold=True, color="385D2A"); cell.fill = PatternFill(start_color="F0F6EA", end_color="F0F6EA", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
                     else: cell.alignment = Alignment(horizontal='left', vertical='center')
                 elif row_type == 'GRAND_TOTAL':
-                    cell.font = Font(bold=True)
-                    cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                    cell.font = Font(bold=True); cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
                     else: cell.alignment = Alignment(horizontal='center' if c==1 else 'right', vertical='center')
                 else:
@@ -1089,11 +1133,27 @@ async def export_data(key: str = ""):
         for col_letter in ['E','F','G', 'Q','R','S']: ws_sp.column_dimensions[col_letter].width = 10
         
         for r in range(4, len(raw_rows) + 4):
+            cell_0 = ws_sp.cell(row=r, column=1)
+            row_type = cell_0.value
+            is_subtotal = (row_type == 'SUBTOTAL')
+            is_grandtotal = (row_type == 'GRAND_TOTAL')
+            if is_subtotal or is_grandtotal: cell_0.value = ''
+
             for c in range(1, 29):
                 cell = ws_sp.cell(row=r, column=c)
                 cell.border = thin_border
-                if c > 4: cell.alignment = Alignment(horizontal='center')
-                if c > 4 and cell.value == 0: cell.font = Font(color="CCCCCC")
+                
+                if is_subtotal:
+                    cell.font = Font(bold=True, color="003366"); cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif is_grandtotal:
+                    cell.font = Font(bold=True); cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='right', vertical='center')
+                else:
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center')
+                    if c > 4 and cell.value == 0: cell.value = ""
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
 
