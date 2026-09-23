@@ -888,11 +888,11 @@ async def print_page(province: str):
         </table>
         
         <div style="margin-top:40px; float: right; font-size: 14px; width: 350px; color: #000;">
-            <div style="margin-bottom: 40px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <div style="margin-bottom: 20px; text-align: center;">(ลงชื่อ)............................................................</div>
-            <div style="margin-bottom: 20px; text-align: center;">(.............................................................)</div>
-            <div style="margin-bottom: 20px; text-align: center;">ตำแหน่ง..........................................................</div>
-            <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 25px; font-weight: 500; text-align: center;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 25px; text-align: center;">(ลงชื่อ)............................................................</div>
+            <div style="margin-bottom: 25px; text-align: center;">(.............................................................)</div>
+            <div style="margin-bottom: 25px; text-align: center;">ตำแหน่ง..........................................................</div>
+            <div style="margin-bottom: 25px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
             <div style="margin-bottom: 15px; text-align: center;">วันที่ ............./............................/.................</div>
         </div>
         <div style="clear: both;"></div>
@@ -1149,9 +1149,38 @@ async def export_data(key: str = ""):
         
     df_raw = pd.DataFrame(raw_rows)
     
+    # ---------------------------------------------
+    # จัดเตรียมข้อมูล Sheet 3 (ติดตามสถานะการรายงาน)
+    # ---------------------------------------------
+    tracking_rows = []
+    db_provinces = df['province'].unique().tolist()
+    
+    for i, p in enumerate(PROVINCES, 1):
+        if p in locked_provs: status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
+        elif p in db_provinces: status = "⚠️ กำลังบันทึกข้อมูล"
+        else: status = "❌ ยังไม่รายงาน"
+        
+        if p in uploaded_provs: upload_status = "✅ อัปโหลดแล้ว"
+        else: upload_status = "❌ ยังไม่อัปโหลด"
+            
+        if p in db_provinces:
+            p_df = df[df['province'] == p]
+            sch_cnt = len(p_df)
+            rt_cnt = int(p_df['rt_student_count'].sum())
+            nt_cnt = int(p_df['nt_student_count'].sum())
+        else:
+            sch_cnt, rt_cnt, nt_cnt = 0, 0, 0
+            
+        tracking_rows.append([i, p, status, upload_status, sch_cnt, rt_cnt, nt_cnt])
+        
+    df_track = pd.DataFrame(tracking_rows)
+    
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        # ===============================================
+        # ชีท 1: งบประมาณ_RT_NT
+        # ===============================================
         df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
         ws1 = writer.sheets['งบประมาณ_RT_NT']
         
@@ -1195,7 +1224,7 @@ async def export_data(key: str = ""):
         
         for r in range(6, len(export_rows) + 6):
             cell_A = ws1.cell(row=r, column=1)
-            row_type = cell_A.value
+            row_type = str(cell_A.value)
             if row_type in ['SUBTOTAL', 'RT_TOTAL', 'NT_TOTAL', 'GRAND_TOTAL']: cell_A.value = ''
 
             for c in range(1, 12):
@@ -1223,9 +1252,14 @@ async def export_data(key: str = ""):
                     elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
-                        if cell.value is not None and cell.value != 0: cell.number_format = '#,##0'
+                        if cell.value is not None and cell.value != 0 and cell.value != "": 
+                            try: cell.number_format = '#,##0'
+                            except: pass
                         if cell.value == 0: cell.value = "" 
                         
+        # ===============================================
+        # ชีท 2: รายงานเด็กพิเศษ
+        # ===============================================
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
         ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
@@ -1249,7 +1283,7 @@ async def export_data(key: str = ""):
         
         for r in range(4, len(raw_rows) + 4):
             cell_0 = ws_sp.cell(row=r, column=1)
-            row_type = cell_0.value
+            row_type = str(cell_0.value)
             is_subtotal = (row_type == 'SUBTOTAL')
             is_grandtotal = (row_type == 'GRAND_TOTAL')
             if is_subtotal or is_grandtotal: cell_0.value = ''
@@ -1270,9 +1304,9 @@ async def export_data(key: str = ""):
                     if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center')
                     if c > 4 and cell.value == 0: cell.value = ""
                     
-        # ---------------------------------------------
-        # Sheet 3 (ติดตามการรายงาน)
-        # ---------------------------------------------
+        # ===============================================
+        # ชีท 3: ติดตามการรายงาน
+        # ===============================================
         ws_track = writer.book.create_sheet('ติดตามการรายงาน')
         
         ws_track.merge_cells('A1:G1')
@@ -1284,7 +1318,8 @@ async def export_data(key: str = ""):
         ws_track['A3'].font = Font(bold=True); ws_track['A3'].fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
         ws_track['A3'].alignment = Alignment(horizontal='center'); ws_track['A3'].border = thin_border
         
-        last_track_row = 9 + len(tracking_rows) - 1
+        # ป้องกัน error กรณีฐานข้อมูลว่างเปล่า (len=0) ให้ใช้ค่า 10 เป็นขั้นต่ำ
+        last_track_row = max(10, 9 + len(tracking_rows) - 1)
         
         ws_track.merge_cells('A4:B4'); ws_track['A4'] = '✅ ยืนยันข้อมูลแล้ว (ล็อค)'; ws_track['A4'].border = thin_border
         ws_track['C4'] = f'=COUNTIF(C10:C{last_track_row}, "*ยืนยันข้อมูลแล้ว*")'; ws_track['C4'].alignment = Alignment(horizontal='center'); ws_track['C4'].border = thin_border
@@ -1333,7 +1368,8 @@ async def export_data(key: str = ""):
                     if "อัปโหลดแล้ว" in str(cell.value): cell.font = Font(color="2E7D32", bold=True)
                     else: cell.font = Font(color="C62828", bold=True)
                     
-        last_row = start_data_row + len(tracking_rows)
+        # จัดการแถวรวมด้านล่างสุดของชีท 3
+        last_row = start_data_row + max(0, len(tracking_rows))
         ws_track.merge_cells(f'A{last_row}:D{last_row}')
         cell_total = ws_track.cell(row=last_row, column=1)
         cell_total.value = 'รวมทั้งสิ้น (ทุกจังหวัด)'
@@ -1343,10 +1379,13 @@ async def export_data(key: str = ""):
         for c in range(5, 8):
             col_letter = chr(64+c)
             cell = ws_track.cell(row=last_row, column=c)
-            cell.value = f"=SUM({col_letter}{start_data_row}:{col_letter}{last_row-1})"
             cell.font = Font(bold=True)
             cell.alignment = Alignment(horizontal='center')
             cell.number_format = '#,##0'
+            if len(tracking_rows) > 0:
+                cell.value = f"=SUM({col_letter}{start_data_row}:{col_letter}{last_row-1})"
+            else:
+                cell.value = 0
             
         for c in range(1, 8):
             cell = ws_track.cell(row=last_row, column=c)
