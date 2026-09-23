@@ -734,9 +734,6 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
-        .signature-box {{ margin-top:30px; float: right; text-align:center; padding-right:50px; font-size: 14px; width: 350px; }}
-        .signature-line {{ border-bottom: 1px dotted #333; display: inline-block; width: 220px; margin: 0 5px; }}
-        .signature-row {{ margin-bottom: 15px; text-align: left; padding-left: 20px; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -782,14 +779,12 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div class="signature-box">
-            <p style="text-align: center; margin-bottom: 25px; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</p>
-            <div class="signature-row">(ลงชื่อ)<span class="signature-line"></span></div>
-            <div class="signature-row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="signature-line"></span>)</div>
-            <div class="signature-row">ตำแหน่ง<span class="signature-line"></span></div>
-            <div class="signature-row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="signature-line" style="width: 200px;"></span></div>
-            <div class="signature-row" style="margin-top: -10px; font-size: 11px; padding-left: 70px; color: #555;">(รักษาราชการแทน/ปฏิบัติราชการแทน ถ้ามี)</div>
-            <div class="signature-row">&nbsp;&nbsp;วันที่<span class="signature-line" style="width: 230px;"></span></div>
+        <div style="margin-top:50px; float: right; font-size: 15px; width: 400px; color: #000;">
+            <div style="margin-bottom: 20px;">(ลงชื่อ)................................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; padding-right: 25px;">(........................................................................)</div>
+            <div style="margin-bottom: 10px;">ตำแหน่ง..............................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; padding-right: 25px;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 15px;">วันที่................./............................................/...................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -840,6 +835,7 @@ async def export_data(key: str = ""):
     row_num = 1
     excel_row = 6 
     prov_start_row = 6
+    subtotal_rows = []
 
     for index, row in df.iterrows():
         prov = row['province']
@@ -851,14 +847,34 @@ async def export_data(key: str = ""):
         
         if prov != current_province:
             if current_province is not None:
+                # สรุปเฉพาะงบ RT จังหวัดนี้
                 export_rows.append({
-                    'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
-                    'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
-                    'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
-                    'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-                    'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
-                    'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
+                    'A': 'RT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ RT (ป.1)", 
+                    'C': None, 'D': None, 'E': None, 'F': None,
+                    'G': None, 'H': None, 'I': None, 'J': None,
+                    'K': f"=SUM(D{prov_start_row}:F{excel_row-1})"
                 })
+                excel_row += 1
+
+                # สรุปเฉพาะงบ NT จังหวัดนี้
+                export_rows.append({
+                    'A': 'NT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ NT (ป.3)", 
+                    'C': None, 'D': None, 'E': None, 'F': None,
+                    'G': None, 'H': None, 'I': None, 'J': None,
+                    'K': f"=SUM(H{prov_start_row}:J{excel_row-2})"
+                })
+                excel_row += 1
+
+                # บรรทัดรวมยอดทั้งสิ้นของจังหวัด
+                export_rows.append({
+                    'A': 'SUBTOTAL', 'B': f"รวมทั้งสิ้น จังหวัด{current_province}", 
+                    'C': f"=SUM(C{prov_start_row}:C{excel_row-3})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-3})",
+                    'E': f"=SUM(E{prov_start_row}:E{excel_row-3})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-3})",
+                    'G': f"=SUM(G{prov_start_row}:G{excel_row-3})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-3})",
+                    'I': f"=SUM(I{prov_start_row}:I{excel_row-3})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-3})",
+                    'K': f"=SUM(K{excel_row-2},K{excel_row-1})"
+                })
+                subtotal_rows.append(excel_row)
                 excel_row += 1
 
             current_province = prov
@@ -897,28 +913,52 @@ async def export_data(key: str = ""):
         })
         row_num += 1; excel_row += 1
 
+    # วนลูปปิดท้ายสำหรับจังหวัดสุดท้าย
     if current_province is not None:
         export_rows.append({
-            'A': 'SUBTOTAL', 'B': f"รวมยอด จังหวัด{current_province}", 
-            'C': f"=SUM(C{prov_start_row}:C{excel_row-1})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-1})",
-            'E': f"=SUM(E{prov_start_row}:E{excel_row-1})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-1})",
-            'G': f"=SUM(G{prov_start_row}:G{excel_row-1})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-1})",
-            'I': f"=SUM(I{prov_start_row}:I{excel_row-1})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-1})",
-            'K': f"=SUM(K{prov_start_row}:K{excel_row-1})"
+            'A': 'RT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ RT (ป.1)", 
+            'C': None, 'D': None, 'E': None, 'F': None,
+            'G': None, 'H': None, 'I': None, 'J': None,
+            'K': f"=SUM(D{prov_start_row}:F{excel_row-1})"
         })
         excel_row += 1
 
+        export_rows.append({
+            'A': 'NT_TOTAL', 'B': f"    >> สรุปเฉพาะงบสอบ NT (ป.3)", 
+            'C': None, 'D': None, 'E': None, 'F': None,
+            'G': None, 'H': None, 'I': None, 'J': None,
+            'K': f"=SUM(H{prov_start_row}:J{excel_row-2})"
+        })
+        excel_row += 1
+
+        export_rows.append({
+            'A': 'SUBTOTAL', 'B': f"รวมทั้งสิ้น จังหวัด{current_province}", 
+            'C': f"=SUM(C{prov_start_row}:C{excel_row-3})", 'D': f"=SUM(D{prov_start_row}:D{excel_row-3})",
+            'E': f"=SUM(E{prov_start_row}:E{excel_row-3})", 'F': f"=SUM(F{prov_start_row}:F{excel_row-3})",
+            'G': f"=SUM(G{prov_start_row}:G{excel_row-3})", 'H': f"=SUM(H{prov_start_row}:H{excel_row-3})",
+            'I': f"=SUM(I{prov_start_row}:I{excel_row-3})", 'J': f"=SUM(J{prov_start_row}:J{excel_row-3})",
+            'K': f"=SUM(K{excel_row-2},K{excel_row-1})"
+        })
+        subtotal_rows.append(excel_row)
+        excel_row += 1
+
+    # บรรทัดรวมระดับประเทศ
+    def build_sum_formula(col_letter):
+        if not subtotal_rows: return 0
+        return "=" + "+".join([f"{col_letter}{r}" for r in subtotal_rows])
+
     export_rows.append({
-        'A': 'รวมทั้งสิ้น', 'B': '', 
-        'C': f"=SUM(C6:C{excel_row-1})/2", 'D': f"=SUM(D6:D{excel_row-1})/2",
-        'E': f"=SUM(E6:E{excel_row-1})/2", 'F': f"=SUM(F6:F{excel_row-1})/2", 
-        'G': f"=SUM(G6:G{excel_row-1})/2", 'H': f"=SUM(H6:H{excel_row-1})/2", 
-        'I': f"=SUM(I6:I{excel_row-1})/2", 'J': f"=SUM(J6:J{excel_row-1})/2", 
-        'K': f"=SUM(K6:K{excel_row-1})/2"
+        'A': 'GRAND_TOTAL', 'B': 'รวมงบประมาณทั้งสิ้น (ทุกจังหวัด)', 
+        'C': build_sum_formula('C'), 'D': build_sum_formula('D'),
+        'E': build_sum_formula('E'), 'F': build_sum_formula('F'),
+        'G': build_sum_formula('G'), 'H': build_sum_formula('H'),
+        'I': build_sum_formula('I'), 'J': build_sum_formula('J'),
+        'K': build_sum_formula('K')
     })
 
     df_export = pd.DataFrame(export_rows)
     
+    # เตรียมข้อมูลเด็กพิเศษสำหรับ Sheet 2
     raw_rows = []
     def ext_sp(j_data):
         if not j_data or j_data == '{}': return {}
@@ -990,20 +1030,31 @@ async def export_data(key: str = ""):
         
         for r in range(6, len(export_rows) + 6):
             cell_A = ws1.cell(row=r, column=1)
-            is_prov_total = (cell_A.value == 'SUBTOTAL')
-            is_grand_total = (cell_A.value == 'รวมทั้งสิ้น')
-            if is_prov_total: cell_A.value = ''
+            row_type = cell_A.value
+            
+            if row_type in ['SUBTOTAL', 'RT_TOTAL', 'NT_TOTAL', 'GRAND_TOTAL']:
+                cell_A.value = ''
 
             for c in range(1, 12):
                 cell = ws1.cell(row=r, column=c)
                 cell.border = thin_border
                 
-                if is_prov_total:
+                if row_type == 'SUBTOTAL':
                     cell.font = Font(bold=True, color="003366")
                     cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
                     else: cell.alignment = Alignment(horizontal='right', vertical='center')
-                elif is_grand_total:
+                elif row_type == 'RT_TOTAL':
+                    cell.font = Font(bold=True, color="1F497D")
+                    cell.fill = PatternFill(start_color="E9EEF7", end_color="E9EEF7", fill_type="solid")
+                    if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='left', vertical='center')
+                elif row_type == 'NT_TOTAL':
+                    cell.font = Font(bold=True, color="385D2A")
+                    cell.fill = PatternFill(start_color="F0F6EA", end_color="F0F6EA", fill_type="solid")
+                    if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='left', vertical='center')
+                elif row_type == 'GRAND_TOTAL':
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
                     if c > 2: cell.alignment = Alignment(horizontal='right', vertical='center'); cell.number_format = '#,##0'
@@ -1014,7 +1065,7 @@ async def export_data(key: str = ""):
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
                         if cell.value is not None and cell.value != 0: cell.number_format = '#,##0'
-                        if cell.value == 0: cell.value = ""
+                        if cell.value == 0: cell.value = "" 
                         
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
