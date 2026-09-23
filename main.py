@@ -152,7 +152,7 @@ async def get_form():
             .dla-block {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; position: relative; }}
             .dla-title {{ font-weight: 600; font-size: 16px; margin-bottom: 15px; color: #2b6cb0; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }}
             .school-wrapper {{ background: white; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e0; margin-bottom: 15px; }}
-            .school-block {{ display: flex; gap: 15px; align-items: flex-end; }}
+            .school-block {{ display: flex; gap: 15px; align-items: flex-start; }}
             .school-block > div {{ flex: 1; }}
             .school-block .col-school {{ flex: 2; }}
             label {{ font-weight: 500; font-size: 14px; margin-bottom: 5px; display: block; color: #4a5568; }}
@@ -173,8 +173,10 @@ async def get_form():
             .btn-primary {{ background-color: #2b6cb0; color: white; width: 100%; font-size: 16px; padding: 12px; margin-top: 20px; }}
             .btn-secondary {{ background-color: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; }}
             .btn-add-school {{ background-color: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; margin-top: 10px; width: 100%; }}
-            .btn-remove {{ background-color: #fff5f5; color: #c53030; border: 1px solid #fed7d7; padding: 8px 12px; }}
+            .btn-remove {{ background-color: #fff5f5; color: #c53030; border: 1px solid #fed7d7; padding: 8px 12px; margin-top: 27px; }}
             .nav-link {{ display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #dd6b20; font-weight: 500; }}
+            .other-input-field {{ border-color: #ed8936; background-color: #fffaf0; }}
+            .other-input-field:focus {{ box-shadow: 0 0 0 1px #ed8936; }}
         </style>
     </head>
     <body>
@@ -217,17 +219,18 @@ async def get_form():
                         <div class="school-block">
                             <div class="col-school">
                                 <label>ชื่อโรงเรียน</label>
-                                <select class="school-name" required><option value="">-- เลือกโรงเรียน --</option></select>
+                                <select class="school-name" required onchange="toggleOtherInput(this, 'school')"><option value="">-- เลือกโรงเรียน --</option></select>
+                                <input type="text" class="school-name-other other-input-field" placeholder="ระบุชื่อโรงเรียนที่ต้องการเพิ่ม..." style="display:none; margin-top:8px;">
                             </div>
                             <div>
-                                <label>ยอด นร. ป.1 (RT) รวม</label>
+                                <label>ยอด นร. ป.1 (RT)</label>
                                 <input type="number" class="rt-count" min="0" value="0" oninput="calcSpecial(this, 'rt', true)" required>
                             </div>
                             <div>
-                                <label>ยอด นร. ป.3 (NT) รวม</label>
+                                <label>ยอด นร. ป.3 (NT)</label>
                                 <input type="number" class="nt-count" min="0" value="0" oninput="calcSpecial(this, 'nt', true)" required>
                             </div>
-                            <div style="flex: 0.3; text-align: center; margin-bottom: 2px;">
+                            <div style="flex: 0.3; text-align: center;">
                                 <button type="button" class="btn btn-remove" onclick="this.closest('.school-wrapper').remove()" title="ลบโรงเรียนนี้">ลบ</button>
                             </div>
                         </div>
@@ -255,6 +258,20 @@ async def get_form():
                         </div>
                     </div>
                 `;
+            }}
+            
+            function toggleOtherInput(selectElement, type) {{
+                const otherInput = selectElement.parentElement.querySelector(`.${{type}}-name-other`);
+                if(otherInput) {{
+                    if(selectElement.value === 'other') {{
+                        otherInput.style.display = 'block';
+                        otherInput.setAttribute('required', 'true');
+                        otherInput.focus();
+                    }} else {{
+                        otherInput.style.display = 'none';
+                        otherInput.removeAttribute('required');
+                    }}
+                }}
             }}
             
             function toggleSpecialPanel(cb) {{
@@ -303,17 +320,20 @@ async def get_form():
                         dlaOptions += `<option value="${{d}}">${{d}}</option>`;
                     }}
                 }}
+                dlaOptions += `<option value="other" style="color:#d69e2e; font-weight:bold;">+ อื่นๆ (พิมพ์เพิ่มชื่อ อปท. เอง)</option>`;
                 
                 const dlaHTML = `
                     <div class="dla-block" id="${{dlaId}}">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div class="dla-title">อปท. ที่ ${{dlaCount}}</div>
-                            ${{dlaCount > 1 ? `<button type="button" class="btn btn-remove" style="padding: 4px 8px; font-size: 12px;" onclick="document.getElementById('${{dlaId}}').remove()">- ลบ อปท. นี้</button>` : ''}}
+                            ${{dlaCount > 1 ? `<button type="button" class="btn btn-remove" style="margin-top:0; padding: 4px 8px; font-size: 12px;" onclick="document.getElementById('${{dlaId}}').remove()">- ลบ อปท. นี้</button>` : ''}}
                         </div>
                         <label>ชื่อ อปท.</label>
-                        <select class="dla-name" required style="margin-bottom: 15px;" onchange="updateSchools(this, '${{dlaId}}')">
+                        <select class="dla-name" required style="margin-bottom: 5px;" onchange="updateSchools(this, '${{dlaId}}'); toggleOtherInput(this, 'dla');">
                             ${{dlaOptions}}
                         </select>
+                        <input type="text" class="dla-name-other other-input-field" placeholder="ระบุชื่อ อปท. ที่ต้องการเพิ่ม..." style="display:none; margin-bottom: 15px;">
+                        
                         <div class="schools-container" id="schools-${{dlaId}}"></div>
                         <button type="button" class="btn btn-add-school" onclick="addSchool('${{dlaId}}')">+ เพิ่มโรงเรียนใน อปท. นี้</button>
                     </div>
@@ -342,17 +362,27 @@ async def get_form():
                 const prov = document.getElementById('provinceInput').value;
                 const currentValue = selectElement.value;
                 selectElement.innerHTML = '<option value="">-- เลือกโรงเรียน --</option>';
-                if (prov && dlaName && dbData[prov] && dbData[prov][dlaName]) {{
+                
+                if (prov && dlaName && dlaName !== 'other' && dbData[prov] && dbData[prov][dlaName]) {{
                     dbData[prov][dlaName].forEach(sch => {{
                         const opt = document.createElement('option');
                         opt.value = sch;
                         opt.text = sch;
                         selectElement.appendChild(opt);
                     }});
-                    if(currentValue && dbData[prov][dlaName].includes(currentValue)) {{
-                        selectElement.value = currentValue;
-                    }}
                 }}
+                
+                const otherOpt = document.createElement('option');
+                otherOpt.value = 'other';
+                otherOpt.text = '+ อื่นๆ (พิมพ์เพิ่มชื่อโรงเรียนเอง)';
+                otherOpt.style.color = '#d69e2e';
+                otherOpt.style.fontWeight = 'bold';
+                selectElement.appendChild(otherOpt);
+                
+                if(currentValue) {{
+                    selectElement.value = currentValue;
+                }}
+                toggleOtherInput(selectElement, 'school');
             }}
             
             async function submitData() {{
@@ -369,15 +399,25 @@ async def get_form():
                 let hasError = false;
                 
                 dlaBlocks.forEach(dlaBlock => {{
-                    const dlaName = dlaBlock.querySelector('.dla-name').value.trim();
+                    const dlaSelect = dlaBlock.querySelector('.dla-name');
+                    let dlaName = dlaSelect.value.trim();
+                    if (dlaName === 'other') {{
+                        dlaName = dlaBlock.querySelector('.dla-name-other').value.trim();
+                    }}
                     if (!dlaName) hasError = true;
+                    
                     const schools = [];
                     
                     dlaBlock.querySelectorAll('.school-wrapper').forEach(wrapper => {{
-                        const schoolName = wrapper.querySelector('.school-name').value.trim();
+                        const schSelect = wrapper.querySelector('.school-name');
+                        let schoolName = schSelect.value.trim();
+                        if (schoolName === 'other') {{
+                            schoolName = wrapper.querySelector('.school-name-other').value.trim();
+                        }}
+                        if (!schoolName) hasError = true;
+                        
                         const rtCount = parseInt(wrapper.querySelector('.rt-count').value);
                         const ntCount = parseInt(wrapper.querySelector('.nt-count').value);
-                        if (!schoolName) hasError = true;
                         
                         const hasSp = wrapper.querySelector('.has-special').checked;
                         const rtSp = {{}}; const ntSp = {{}};
@@ -401,7 +441,7 @@ async def get_form():
                     payload.dlas.push({{ dla_name: dlaName, schools: schools }});
                 }});
                 
-                if (hasError) {{ alert('กรุณาเลือก อปท. และชื่อโรงเรียนให้ครบถ้วน'); return; }}
+                if (hasError) {{ alert('กรุณาเลือกหรือระบุชื่อ อปท. และชื่อโรงเรียนให้ครบถ้วน'); return; }}
                 if (payload.dlas.length === 0 || payload.dlas[0].schools.length === 0) {{ alert('ต้องมีข้อมูลอย่างน้อย 1 อปท. และ 1 โรงเรียน'); return; }}
                 
                 try {{
@@ -1068,32 +1108,6 @@ async def export_data(key: str = ""):
     })
         
     df_raw = pd.DataFrame(raw_rows)
-    
-    # ---------------------------------------------
-    # จัดเตรียมข้อมูล Sheet 3 (ติดตามสถานะการรายงาน)
-    # ---------------------------------------------
-    tracking_rows = []
-    db_provinces = df['province'].unique().tolist()
-    
-    for i, p in enumerate(PROVINCES, 1):
-        if p in locked_provs: status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
-        elif p in db_provinces: status = "⚠️ กำลังบันทึกข้อมูล"
-        else: status = "❌ ยังไม่รายงาน"
-        
-        if p in uploaded_provs: upload_status = "✅ อัปโหลดแล้ว"
-        else: upload_status = "❌ ยังไม่อัปโหลด"
-            
-        if p in db_provinces:
-            p_df = df[df['province'] == p]
-            sch_cnt = len(p_df)
-            rt_cnt = p_df['rt_student_count'].sum()
-            nt_cnt = p_df['nt_student_count'].sum()
-        else:
-            sch_cnt, rt_cnt, nt_cnt = 0, 0, 0
-            
-        tracking_rows.append([i, p, status, upload_status, sch_cnt, rt_cnt, nt_cnt])
-        
-    df_track = pd.DataFrame(tracking_rows)
     
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
