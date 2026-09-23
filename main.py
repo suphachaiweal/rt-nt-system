@@ -984,29 +984,96 @@ async def export_data(key: str = ""):
     df_export = pd.DataFrame(export_rows)
     
     # ---------------------------------------------
+    # จัดเตรียมข้อมูล Sheet 2 (รายงานเด็กพิเศษ) + ซับโททัล
+    # ---------------------------------------------
+    raw_rows = []
+    def ext_sp(j_data):
+        if not j_data or j_data == '{}': return {}
+        try: return json.loads(j_data) if isinstance(j_data, str) else j_data
+        except: return {}
+
+    current_sp_prov = None
+    sp_row_num = 1
+    sp_excel_row = 4
+    sp_prov_start = 4
+    
+    for index, row in df.iterrows():
+        prov = row['province']
+        
+        if prov != current_sp_prov:
+            if current_sp_prov is not None:
+                raw_rows.append({
+                    0: 'SUBTOTAL', 1: f"รวมยอด จังหวัด{current_sp_prov}", 2: None, 3: None,
+                    4: f"=SUM(E{sp_prov_start}:E{sp_excel_row-1})", 5: f"=SUM(F{sp_prov_start}:F{sp_excel_row-1})", 6: f"=SUM(G{sp_prov_start}:G{sp_excel_row-1})",
+                    7: f"=SUM(H{sp_prov_start}:H{sp_excel_row-1})", 8: f"=SUM(I{sp_prov_start}:I{sp_excel_row-1})", 9: f"=SUM(J{sp_prov_start}:J{sp_excel_row-1})",
+                    10: f"=SUM(K{sp_prov_start}:K{sp_excel_row-1})", 11: f"=SUM(L{sp_prov_start}:L{sp_excel_row-1})", 12: f"=SUM(M{sp_prov_start}:M{sp_excel_row-1})",
+                    13: f"=SUM(N{sp_prov_start}:N{sp_excel_row-1})", 14: f"=SUM(O{sp_prov_start}:O{sp_excel_row-1})", 15: f"=SUM(P{sp_prov_start}:P{sp_excel_row-1})",
+                    16: f"=SUM(Q{sp_prov_start}:Q{sp_excel_row-1})", 17: f"=SUM(R{sp_prov_start}:R{sp_excel_row-1})", 18: f"=SUM(S{sp_prov_start}:S{sp_excel_row-1})",
+                    19: f"=SUM(T{sp_prov_start}:T{sp_excel_row-1})", 20: f"=SUM(U{sp_prov_start}:U{sp_excel_row-1})", 21: f"=SUM(V{sp_prov_start}:V{sp_excel_row-1})",
+                    22: f"=SUM(W{sp_prov_start}:W{sp_excel_row-1})", 23: f"=SUM(X{sp_prov_start}:X{sp_excel_row-1})", 24: f"=SUM(Y{sp_prov_start}:Y{sp_excel_row-1})",
+                    25: f"=SUM(Z{sp_prov_start}:Z{sp_excel_row-1})", 26: f"=SUM(AA{sp_prov_start}:AA{sp_excel_row-1})", 27: f"=SUM(AB{sp_prov_start}:AB{sp_excel_row-1})"
+                })
+                sp_excel_row += 1
+                
+            current_sp_prov = prov
+            sp_prov_start = sp_excel_row
+            
+        rt_sp_d = ext_sp(row['rt_special_json'])
+        nt_sp_d = ext_sp(row['nt_special_json'])
+        rt_sp = sum(rt_sp_d.values())
+        nt_sp = sum(nt_sp_d.values())
+        
+        raw_rows.append({
+            0: sp_row_num, 1: row['province'], 2: row['dla_name'], 3: row['school_name'],
+            4: row['rt_student_count'], 5: row['rt_student_count'] - rt_sp, 6: rt_sp,
+            7: rt_sp_d.get('t1', 0), 8: rt_sp_d.get('t2', 0), 9: rt_sp_d.get('t3', 0), 10: rt_sp_d.get('t4', 0), 11: rt_sp_d.get('t5', 0), 12: rt_sp_d.get('t6', 0), 13: rt_sp_d.get('t7', 0), 14: rt_sp_d.get('t8', 0), 15: rt_sp_d.get('t9', 0),
+            16: row['nt_student_count'], 17: row['nt_student_count'] - nt_sp, 18: nt_sp,
+            19: nt_sp_d.get('t1', 0), 20: nt_sp_d.get('t2', 0), 21: nt_sp_d.get('t3', 0), 22: nt_sp_d.get('t4', 0), 23: nt_sp_d.get('t5', 0), 24: nt_sp_d.get('t6', 0), 25: nt_sp_d.get('t7', 0), 26: nt_sp_d.get('t8', 0), 27: nt_sp_d.get('t9', 0)
+        })
+        sp_row_num += 1
+        sp_excel_row += 1
+
+    if current_sp_prov is not None:
+        raw_rows.append({
+            0: 'SUBTOTAL', 1: f"รวมยอด จังหวัด{current_sp_prov}", 2: None, 3: None,
+            4: f"=SUM(E{sp_prov_start}:E{sp_excel_row-1})", 5: f"=SUM(F{sp_prov_start}:F{sp_excel_row-1})", 6: f"=SUM(G{sp_prov_start}:G{sp_excel_row-1})",
+            7: f"=SUM(H{sp_prov_start}:H{sp_excel_row-1})", 8: f"=SUM(I{sp_prov_start}:I{sp_excel_row-1})", 9: f"=SUM(J{sp_prov_start}:J{sp_excel_row-1})",
+            10: f"=SUM(K{sp_prov_start}:K{sp_excel_row-1})", 11: f"=SUM(L{sp_prov_start}:L{sp_excel_row-1})", 12: f"=SUM(M{sp_prov_start}:M{sp_excel_row-1})",
+            13: f"=SUM(N{sp_prov_start}:N{sp_excel_row-1})", 14: f"=SUM(O{sp_prov_start}:O{sp_excel_row-1})", 15: f"=SUM(P{sp_prov_start}:P{sp_excel_row-1})",
+            16: f"=SUM(Q{sp_prov_start}:Q{sp_excel_row-1})", 17: f"=SUM(R{sp_prov_start}:R{sp_excel_row-1})", 18: f"=SUM(S{sp_prov_start}:S{sp_excel_row-1})",
+            19: f"=SUM(T{sp_prov_start}:T{sp_excel_row-1})", 20: f"=SUM(U{sp_prov_start}:U{sp_excel_row-1})", 21: f"=SUM(V{sp_prov_start}:V{sp_excel_row-1})",
+            22: f"=SUM(W{sp_prov_start}:W{sp_excel_row-1})", 23: f"=SUM(X{sp_prov_start}:X{sp_excel_row-1})", 24: f"=SUM(Y{sp_prov_start}:Y{sp_excel_row-1})",
+            25: f"=SUM(Z{sp_prov_start}:Z{sp_excel_row-1})", 26: f"=SUM(AA{sp_prov_start}:AA{sp_excel_row-1})", 27: f"=SUM(AB{sp_prov_start}:AB{sp_excel_row-1})"
+        })
+        sp_excel_row += 1
+        
+    raw_rows.append({
+        0: 'GRAND_TOTAL', 1: 'รวมทั้งสิ้น (ทุกจังหวัด)', 2: None, 3: None,
+        4: f"=SUM(E4:E{sp_excel_row-1})/2", 5: f"=SUM(F4:F{sp_excel_row-1})/2", 6: f"=SUM(G4:G{sp_excel_row-1})/2",
+        7: f"=SUM(H4:H{sp_excel_row-1})/2", 8: f"=SUM(I4:I{sp_excel_row-1})/2", 9: f"=SUM(J4:J{sp_excel_row-1})/2",
+        10: f"=SUM(K4:K{sp_excel_row-1})/2", 11: f"=SUM(L4:L{sp_excel_row-1})/2", 12: f"=SUM(M4:M{sp_excel_row-1})/2",
+        13: f"=SUM(N4:N{sp_excel_row-1})/2", 14: f"=SUM(O4:O{sp_excel_row-1})/2", 15: f"=SUM(P4:P{sp_excel_row-1})/2",
+        16: f"=SUM(Q4:Q{sp_excel_row-1})/2", 17: f"=SUM(R4:R{sp_excel_row-1})/2", 18: f"=SUM(S4:S{sp_excel_row-1})/2",
+        19: f"=SUM(T4:T{sp_excel_row-1})/2", 20: f"=SUM(U4:U{sp_excel_row-1})/2", 21: f"=SUM(V4:V{sp_excel_row-1})/2",
+        22: f"=SUM(W4:W{sp_excel_row-1})/2", 23: f"=SUM(X4:X{sp_excel_row-1})/2", 24: f"=SUM(Y4:Y{sp_excel_row-1})/2",
+        25: f"=SUM(Z4:Z{sp_excel_row-1})/2", 26: f"=SUM(AA4:AA{sp_excel_row-1})/2", 27: f"=SUM(AB4:AB{sp_excel_row-1})/2"
+    })
+        
+    df_raw = pd.DataFrame(raw_rows)
+    
+    # ---------------------------------------------
     # จัดเตรียมข้อมูล Sheet 3 (ติดตามสถานะการรายงาน)
     # ---------------------------------------------
     tracking_rows = []
     db_provinces = df['province'].unique().tolist()
     
-    status_counts = {"locked": 0, "draft": 0, "missing": 0, "uploaded": 0}
-    
     for i, p in enumerate(PROVINCES, 1):
-        if p in locked_provs: 
-            status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
-            status_counts["locked"] += 1
-        elif p in db_provinces: 
-            status = "⚠️ กำลังบันทึกข้อมูล"
-            status_counts["draft"] += 1
-        else: 
-            status = "❌ ยังไม่รายงาน"
-            status_counts["missing"] += 1
+        if p in locked_provs: status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
+        elif p in db_provinces: status = "⚠️ กำลังบันทึกข้อมูล"
+        else: status = "❌ ยังไม่รายงาน"
         
-        if p in uploaded_provs: 
-            upload_status = "✅ อัปโหลดแล้ว"
-            status_counts["uploaded"] += 1
-        else: 
-            upload_status = "❌ ยังไม่อัปโหลด"
+        if p in uploaded_provs: upload_status = "✅ อัปโหลดแล้ว"
+        else: upload_status = "❌ ยังไม่อัปโหลด"
             
         if p in db_provinces:
             p_df = df[df['province'] == p]
@@ -1097,6 +1164,50 @@ async def export_data(key: str = ""):
                         if cell.value is not None and cell.value != 0: cell.number_format = '#,##0'
                         if cell.value == 0: cell.value = "" 
                         
+        df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
+        ws_sp = writer.sheets['รายงานเด็กพิเศษ']
+        ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
+        ws_sp.merge_cells('A2:D2'); ws_sp['A2'] = 'ข้อมูลสถานศึกษา'
+        ws_sp.merge_cells('E2:P2'); ws_sp['E2'] = 'ระดับชั้น ป.1 (สอบ RT)'
+        ws_sp.merge_cells('Q2:AB2'); ws_sp['Q2'] = 'ระดับชั้น ป.3 (สอบ NT)'
+        
+        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
+        for col_num, header in enumerate(headers, 1): ws_sp.cell(row=3, column=col_num).value = header
+            
+        for col in range(1, 29):
+            ws_sp.cell(row=2, column=col).border = thin_border; ws_sp.cell(row=3, column=col).border = thin_border
+            ws_sp.cell(row=3, column=col).font = Font(bold=True); ws_sp.cell(row=2, column=col).font = Font(bold=True)
+            ws_sp.cell(row=2, column=col).alignment = Alignment(horizontal='center', vertical='center'); ws_sp.cell(row=3, column=col).alignment = Alignment(horizontal='center', vertical='center')
+            if col <= 4: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+            elif col <= 16: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+            else: ws_sp.cell(row=2, column=col).fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid"); ws_sp.cell(row=3, column=col).fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+                
+        ws_sp.column_dimensions['B'].width = 15; ws_sp.column_dimensions['C'].width = 25; ws_sp.column_dimensions['D'].width = 30
+        for col_letter in ['E','F','G', 'Q','R','S']: ws_sp.column_dimensions[col_letter].width = 10
+        
+        for r in range(4, len(raw_rows) + 4):
+            cell_0 = ws_sp.cell(row=r, column=1)
+            row_type = cell_0.value
+            is_subtotal = (row_type == 'SUBTOTAL')
+            is_grandtotal = (row_type == 'GRAND_TOTAL')
+            if is_subtotal or is_grandtotal: cell_0.value = ''
+
+            for c in range(1, 29):
+                cell = ws_sp.cell(row=r, column=c)
+                cell.border = thin_border
+                
+                if is_subtotal:
+                    cell.font = Font(bold=True, color="003366"); cell.fill = PatternFill(start_color="E6F0FA", end_color="E6F0FA", fill_type="solid")
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif is_grandtotal:
+                    cell.font = Font(bold=True); cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center'); cell.number_format = '#,##0'
+                    else: cell.alignment = Alignment(horizontal='right', vertical='center')
+                else:
+                    if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center')
+                    if c > 4 and cell.value == 0: cell.value = ""
+                    
         # ---------------------------------------------
         # Sheet 3 (ติดตามการรายงาน)
         # ---------------------------------------------
@@ -1111,17 +1222,20 @@ async def export_data(key: str = ""):
         ws_track['A3'].font = Font(bold=True); ws_track['A3'].fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
         ws_track['A3'].alignment = Alignment(horizontal='center'); ws_track['A3'].border = thin_border
         
+        last_track_row = 9 + len(tracking_rows) - 1
+        
         ws_track.merge_cells('A4:B4'); ws_track['A4'] = '✅ ยืนยันข้อมูลแล้ว (ล็อค)'; ws_track['A4'].border = thin_border
-        ws_track['C4'] = f"{status_counts['locked']} จังหวัด"; ws_track['C4'].alignment = Alignment(horizontal='center'); ws_track['C4'].border = thin_border
-        
+        ws_track['C4'] = f'=COUNTIF(C10:C{last_track_row}, "*ยืนยันข้อมูลแล้ว*")'; ws_track['C4'].alignment = Alignment(horizontal='center'); ws_track['C4'].border = thin_border
         ws_track.merge_cells('A5:B5'); ws_track['A5'] = '⚠️ กำลังบันทึกข้อมูล'; ws_track['A5'].border = thin_border
-        ws_track['C5'] = f"{status_counts['draft']} จังหวัด"; ws_track['C5'].alignment = Alignment(horizontal='center'); ws_track['C5'].border = thin_border
-        
+        ws_track['C5'] = f'=COUNTIF(C10:C{last_track_row}, "*กำลังบันทึกข้อมูล*")'; ws_track['C5'].alignment = Alignment(horizontal='center'); ws_track['C5'].border = thin_border
         ws_track.merge_cells('A6:B6'); ws_track['A6'] = '❌ ยังไม่รายงาน'; ws_track['A6'].border = thin_border
-        ws_track['C6'] = f"{status_counts['missing']} จังหวัด"; ws_track['C6'].alignment = Alignment(horizontal='center'); ws_track['C6'].border = thin_border
-        
+        ws_track['C6'] = f'=COUNTIF(C10:C{last_track_row}, "*ยังไม่รายงาน*")'; ws_track['C6'].alignment = Alignment(horizontal='center'); ws_track['C6'].border = thin_border
         ws_track.merge_cells('A7:B7'); ws_track['A7'] = '✅ อัปโหลดเอกสารรับรองแล้ว'; ws_track['A7'].border = thin_border
-        ws_track['C7'] = f"{status_counts['uploaded']} จังหวัด"; ws_track['C7'].alignment = Alignment(horizontal='center'); ws_track['C7'].border = thin_border
+        ws_track['C7'] = f'=COUNTIF(D10:D{last_track_row}, "*อัปโหลดแล้ว*")'; ws_track['C7'].alignment = Alignment(horizontal='center'); ws_track['C7'].border = thin_border
+        
+        ws_track['A4'].font = Font(color="2E7D32", bold=True); ws_track['C4'].font = Font(color="2E7D32", bold=True)
+        ws_track['A5'].font = Font(color="E65100", bold=True); ws_track['C5'].font = Font(color="E65100", bold=True)
+        ws_track['A6'].font = Font(color="C62828", bold=True); ws_track['C6'].font = Font(color="C62828", bold=True)
         ws_track['A7'].font = Font(color="2E7D32", bold=True); ws_track['C7'].font = Font(color="2E7D32", bold=True)
         
         headers_track = ['ลำดับ', 'จังหวัด', 'สถานะ\nการกรอกข้อมูล', 'เอกสารรับรอง\n(ลายเซ็น)', 'จำนวน\nโรงเรียน (แห่ง)', 'นักเรียน ป.1\n(RT)', 'นักเรียน ป.3\n(NT)']
@@ -1152,10 +1266,10 @@ async def export_data(key: str = ""):
                 if c == 3:
                     if "ยืนยัน" in str(cell.value): cell.font = Font(color="2E7D32", bold=True)
                     elif "กำลัง" in str(cell.value): cell.font = Font(color="E65100", bold=True)
-                    else: cell.font = Font(color="C62828")
+                    else: cell.font = Font(color="C62828", bold=True)
                 if c == 4:
                     if "อัปโหลดแล้ว" in str(cell.value): cell.font = Font(color="2E7D32", bold=True)
-                    else: cell.font = Font(color="C62828")
+                    else: cell.font = Font(color="C62828", bold=True)
                     
         last_row = start_data_row + len(tracking_rows)
         ws_track.merge_cells(f'A{last_row}:D{last_row}')
