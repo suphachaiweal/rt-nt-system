@@ -80,11 +80,20 @@ def init_db():
                  (province TEXT PRIMARY KEY,
                   ref_code TEXT,
                   locked_at TEXT)''')
+                  
+    c.execute('''CREATE TABLE IF NOT EXISTS app_metadata 
+                 (key TEXT PRIMARY KEY, value TEXT)''')
     conn.commit()
     conn.close()
 
 try: init_db()
 except: pass
+
+def update_last_modified(conn):
+    tz_th = timezone(timedelta(hours=7))
+    now_str = datetime.now(tz_th).strftime("%d/%m/%Y %H:%M:%S")
+    c = conn.cursor()
+    c.execute("INSERT INTO app_metadata (key, value) VALUES ('last_updated', %s) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", (now_str,))
 
 class School(BaseModel):
     school_name: str
@@ -440,6 +449,7 @@ async def submit_batch(data: Submission):
                          (province, dla_name, school_name, rt_student_count, nt_student_count, rt_special_json, nt_special_json) 
                          VALUES (%s, %s, %s, %s, %s, %s, %s)''',
                       (data.province, dla.dla_name, school.school_name, school.rt_count, school.nt_count, rt_json, nt_json))
+    update_last_modified(conn)
     conn.commit()
     conn.close()
     return {"status": "success"}
@@ -461,6 +471,7 @@ async def lock_province(province: str):
     c = conn.cursor()
     c.execute("INSERT INTO province_locks (province, ref_code, locked_at) VALUES (%s, %s, %s) ON CONFLICT (province) DO UPDATE SET ref_code = EXCLUDED.ref_code, locked_at = EXCLUDED.locked_at", 
               (province, ref_code, locked_at))
+    update_last_modified(conn)
     conn.commit()
     conn.close()
     
@@ -480,6 +491,7 @@ async def unlock_province(province: str, key: str = ""):
         except: pass
     c.execute("DELETE FROM province_uploads WHERE province=%s", (province,))
     c.execute("DELETE FROM province_locks WHERE province=%s", (province,))
+    update_last_modified(conn)
     conn.commit()
     conn.close()
     return RedirectResponse(url=f"/dashboard?province={province}", status_code=303)
@@ -492,6 +504,11 @@ async def view_dashboard(province: str = ""):
     upload_dict = uploads.set_index('province')['file_path'].to_dict()
     locks = pd.read_sql_query("SELECT * FROM province_locks", conn)
     lock_dict = locks.set_index('province').to_dict('index')
+    
+    c = conn.cursor()
+    c.execute("SELECT value FROM app_metadata WHERE key='last_updated'")
+    last_update_row = c.fetchone()
+    last_updated_text = f"อัปเดตข้อมูลล่าสุด: {last_update_row[0]}" if last_update_row else "ยังไม่มีการบันทึกข้อมูล"
     conn.close()
     
     prov_opts = get_province_options(selected=province)
@@ -619,7 +636,8 @@ async def view_dashboard(province: str = ""):
                 <div>
                     <h3 style="margin: 0; color: #2b6cb0; font-size: 16px;">ส่วนที่ 1: ตรวจสอบข้อมูล</h3>
                 </div>
-                <div>
+                <div style="text-align: right;">
+                    <div style="font-size: 13px; color: #e53e3e; font-weight: bold; margin-bottom: 5px;">🕒 {last_updated_text}</div>
                     <label style="font-weight: 500;">เลือกจังหวัด:</label>
                     <select id="provinceFilter" onchange="filterTable()">
                         <option value="">-- แสดงทุกจังหวัด --</option>
@@ -737,7 +755,6 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
-        .signature-box {{ margin-top: 50px; float: right; font-size: 14px; width: 400px; color: #000; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -783,12 +800,12 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div class="signature-box">
-            <div style="margin-bottom: 20px;">(ลงชื่อ)................................................................................</div>
-            <div style="margin-bottom: 20px; padding-left: 30px;">(.................................................................................)</div>
-            <div style="margin-bottom: 20px;">ตำแหน่ง..............................................................................</div>
+        <div style="margin-top:50px; float: right; font-size: 14px; width: 350px; color: #000;">
+            <div style="margin-bottom: 20px;">(ลงชื่อ)............................................................</div>
+            <div style="margin-bottom: 20px; padding-left: 30px;">(.............................................................)</div>
+            <div style="margin-bottom: 20px;">ตำแหน่ง..........................................................</div>
             <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px;">วันที่ ............./............................................/.................</div>
+            <div style="margin-bottom: 15px;">วันที่ ............./............................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -806,6 +823,7 @@ async def upload_file(province: str, file: UploadFile = File(...)):
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO province_uploads (province, file_path) VALUES (%s, %s) ON CONFLICT (province) DO UPDATE SET file_path = EXCLUDED.file_path", (province, save_filename))
+    update_last_modified(conn)
     conn.commit()
     conn.close()
     return RedirectResponse(url=f"/dashboard?province={province}", status_code=303)
@@ -815,6 +833,7 @@ async def delete_data(school_id: int):
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("DELETE FROM school_data WHERE id=%s", (school_id,))
+    update_last_modified(conn)
     conn.commit()
     conn.close()
     return RedirectResponse(url="/dashboard", status_code=303)
@@ -826,7 +845,12 @@ async def export_data(key: str = ""):
         
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT province, dla_name, school_name, rt_student_count, nt_student_count, rt_special_json, nt_special_json FROM school_data ORDER BY province, dla_name, school_name", conn)
+    
+    c = conn.cursor()
+    c.execute("SELECT province FROM province_locks")
+    locked_provs = [r[0] for r in c.fetchall()]
     conn.close()
+    
     if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูล</h2>")
 
     prov_status = df.groupby('province').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
@@ -958,7 +982,7 @@ async def export_data(key: str = ""):
     df_export = pd.DataFrame(export_rows)
     
     # ---------------------------------------------
-    # จัดเตรียมข้อมูล Sheet 3 (รายงานเด็กพิเศษ) + ซับโททัลรายจังหวัด
+    # จัดเตรียมข้อมูล Sheet 2 (รายงานเด็กพิเศษ) + ซับโททัล
     # ---------------------------------------------
     raw_rows = []
     def ext_sp(j_data):
@@ -1034,13 +1058,37 @@ async def export_data(key: str = ""):
     })
         
     df_raw = pd.DataFrame(raw_rows)
+    
+    # ---------------------------------------------
+    # จัดเตรียมข้อมูล Sheet 3 (ติดตามสถานะการรายงาน)
+    # ---------------------------------------------
+    tracking_rows = []
+    db_provinces = df['province'].unique().tolist()
+    
+    for i, p in enumerate(PROVINCES, 1):
+        if p in locked_provs: status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
+        elif p in db_provinces: status = "⚠️ กำลังบันทึกข้อมูล"
+        else: status = "❌ ยังไม่รายงาน"
+            
+        if p in db_provinces:
+            p_df = df[df['province'] == p]
+            sch_cnt = len(p_df)
+            rt_cnt = p_df['rt_student_count'].sum()
+            nt_cnt = p_df['nt_student_count'].sum()
+        else:
+            sch_cnt, rt_cnt, nt_cnt = 0, 0, 0
+            
+        tracking_rows.append([i, p, status, sch_cnt, rt_cnt, nt_cnt])
+        
+    df_track = pd.DataFrame(tracking_rows)
+    
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
         df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
         ws1 = writer.sheets['งบประมาณ_RT_NT']
         
-        ws1.merge_cells('A1:K1'); ws1['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2569'
+        ws1.merge_cells('A1:K1'); ws1['A1'] = 'รายละเอียดประกอบการจัดสรรงบประมาณรายจ่ายประจำปีงบประมาณ พ.ศ. 2570'
         ws1['A1'].font = Font(bold=True, size=12); ws1['A1'].alignment = Alignment(horizontal='center')
         ws1.merge_cells('A2:K2'); ws1['A2'] = 'แผนงานยุทธศาสตร์พัฒนาบริการประชาชนและการพัฒนาประสิทธิภาพภาครัฐ งบดำเนินงาน'
         ws1['A2'].font = Font(bold=True, size=12); ws1['A2'].alignment = Alignment(horizontal='center')
@@ -1154,6 +1202,41 @@ async def export_data(key: str = ""):
                 else:
                     if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center')
                     if c > 4 and cell.value == 0: cell.value = ""
+                    
+        # ---------------------------------------------
+        # Sheet 3 (ติดตามการรายงาน)
+        # ---------------------------------------------
+        df_track.to_excel(writer, index=False, header=False, startrow=2, sheet_name='ติดตามการรายงาน')
+        ws_track = writer.sheets['ติดตามการรายงาน']
+        
+        ws_track.merge_cells('A1:F1')
+        ws_track['A1'] = 'สรุปสถานะการรายงานข้อมูลนักเรียน (RT/NT) รายจังหวัด'
+        ws_track['A1'].font = Font(bold=True, size=14)
+        ws_track['A1'].alignment = Alignment(horizontal='center')
+        
+        headers_track = ['ลำดับ', 'จังหวัด', 'สถานะการรายงาน', 'จำนวนโรงเรียน (แห่ง)', 'นักเรียน ป.1 (คน)', 'นักเรียน ป.3 (คน)']
+        for col_num, header in enumerate(headers_track, 1):
+            cell = ws_track.cell(row=2, column=col_num)
+            cell.value = header
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+            
+        ws_track.column_dimensions['A'].width = 8; ws_track.column_dimensions['B'].width = 25
+        ws_track.column_dimensions['C'].width = 30; ws_track.column_dimensions['D'].width = 22
+        ws_track.column_dimensions['E'].width = 20; ws_track.column_dimensions['F'].width = 20
+        
+        for r in range(3, len(tracking_rows) + 3):
+            for c in range(1, 7):
+                cell = ws_track.cell(row=r, column=c)
+                cell.border = thin_border
+                if c == 1 or c >= 4: cell.alignment = Alignment(horizontal='center')
+                if c >= 4 and cell.value > 0: cell.number_format = '#,##0'
+                if c == 3:
+                    if "ยืนยัน" in cell.value: cell.font = Font(color="2E7D32", bold=True)
+                    elif "กำลัง" in cell.value: cell.font = Font(color="E65100", bold=True)
+                    else: cell.font = Font(color="C62828")
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
 
@@ -1323,5 +1406,6 @@ async def update_data(school_id: int, request: Request):
     prov = c.fetchone()[0]
     c.execute('''UPDATE school_data SET school_name=%s, rt_student_count=%s, nt_student_count=%s, rt_special_json=%s, nt_special_json=%s WHERE id=%s''', 
               (school_name, rt_count, nt_count, json.dumps(rt_sp), json.dumps(nt_sp), school_id))
+    update_last_modified(conn)
     conn.commit(); conn.close()
     return RedirectResponse(url=f"/dashboard?province={prov}", status_code=303)
