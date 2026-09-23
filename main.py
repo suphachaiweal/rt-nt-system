@@ -849,6 +849,8 @@ async def export_data(key: str = ""):
     c = conn.cursor()
     c.execute("SELECT province FROM province_locks")
     locked_provs = [r[0] for r in c.fetchall()]
+    c.execute("SELECT province FROM province_uploads")
+    uploaded_provs = [r[0] for r in c.fetchall()]
     conn.close()
     
     if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูล</h2>")
@@ -1069,6 +1071,9 @@ async def export_data(key: str = ""):
         if p in locked_provs: status = "✅ ยืนยันข้อมูลแล้ว (ล็อค)"
         elif p in db_provinces: status = "⚠️ กำลังบันทึกข้อมูล"
         else: status = "❌ ยังไม่รายงาน"
+        
+        if p in uploaded_provs: upload_status = "✅ อัปโหลดแล้ว"
+        else: upload_status = "❌ ยังไม่อัปโหลด"
             
         if p in db_provinces:
             p_df = df[df['province'] == p]
@@ -1078,7 +1083,7 @@ async def export_data(key: str = ""):
         else:
             sch_cnt, rt_cnt, nt_cnt = 0, 0, 0
             
-        tracking_rows.append([i, p, status, sch_cnt, rt_cnt, nt_cnt])
+        tracking_rows.append([i, p, status, upload_status, sch_cnt, rt_cnt, nt_cnt])
         
     df_track = pd.DataFrame(tracking_rows)
     
@@ -1209,33 +1214,39 @@ async def export_data(key: str = ""):
         df_track.to_excel(writer, index=False, header=False, startrow=2, sheet_name='ติดตามการรายงาน')
         ws_track = writer.sheets['ติดตามการรายงาน']
         
-        ws_track.merge_cells('A1:F1')
+        ws_track.merge_cells('A1:G1')
         ws_track['A1'] = 'สรุปสถานะการรายงานข้อมูลนักเรียน (RT/NT) รายจังหวัด'
         ws_track['A1'].font = Font(bold=True, size=14)
         ws_track['A1'].alignment = Alignment(horizontal='center')
         
-        headers_track = ['ลำดับ', 'จังหวัด', 'สถานะการรายงาน', 'จำนวนโรงเรียน (แห่ง)', 'นักเรียน ป.1 (คน)', 'นักเรียน ป.3 (คน)']
+        headers_track = ['ลำดับ', 'จังหวัด', 'สถานะ\nการกรอกข้อมูล', 'เอกสารรับรอง\n(ลายเซ็น)', 'จำนวน\nโรงเรียน (แห่ง)', 'นักเรียน ป.1\n(RT)', 'นักเรียน ป.3\n(NT)']
         for col_num, header in enumerate(headers_track, 1):
             cell = ws_track.cell(row=2, column=col_num)
             cell.value = header
             cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
             cell.border = thin_border
             
+        ws_track.row_dimensions[2].height = 35 
+            
         ws_track.column_dimensions['A'].width = 8; ws_track.column_dimensions['B'].width = 25
-        ws_track.column_dimensions['C'].width = 30; ws_track.column_dimensions['D'].width = 22
-        ws_track.column_dimensions['E'].width = 20; ws_track.column_dimensions['F'].width = 20
+        ws_track.column_dimensions['C'].width = 25; ws_track.column_dimensions['D'].width = 20
+        ws_track.column_dimensions['E'].width = 18; ws_track.column_dimensions['F'].width = 18
+        ws_track.column_dimensions['G'].width = 18
         
         for r in range(3, len(tracking_rows) + 3):
-            for c in range(1, 7):
+            for c in range(1, 8):
                 cell = ws_track.cell(row=r, column=c)
                 cell.border = thin_border
-                if c == 1 or c >= 4: cell.alignment = Alignment(horizontal='center')
-                if c >= 4 and cell.value > 0: cell.number_format = '#,##0'
+                if c == 1 or c >= 5: cell.alignment = Alignment(horizontal='center')
+                if c >= 5 and cell.value > 0: cell.number_format = '#,##0'
                 if c == 3:
                     if "ยืนยัน" in cell.value: cell.font = Font(color="2E7D32", bold=True)
                     elif "กำลัง" in cell.value: cell.font = Font(color="E65100", bold=True)
+                    else: cell.font = Font(color="C62828")
+                if c == 4:
+                    if "อัปโหลดแล้ว" in cell.value: cell.font = Font(color="2E7D32", bold=True)
                     else: cell.font = Font(color="C62828")
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
