@@ -132,6 +132,14 @@ SPECIAL_CATEGORIES = [
     ("t7", "พฤติกรรม"), ("t8", "ออทิสติก"), ("t9", "พิการซ้อน")
 ]
 
+# API สำหรับดึงข้อมูลเดิมที่เคยบันทึกไว้ของจังหวัดนั้นๆ มาแสดงบนหน้าฟอร์ม
+@app.get("/api/saved_schools")
+async def get_saved_schools(province: str):
+    conn = get_db_connection()
+    df = pd.read_sql_query("SELECT dla_name, school_name, rt_student_count, nt_student_count FROM school_data WHERE province=%s ORDER BY dla_name, school_name", conn, params=(province,))
+    conn.close()
+    return JSONResponse(content=df.to_dict('records'))
+
 @app.get("/", response_class=HTMLResponse)
 async def get_form():
     prov_opts = get_province_options()
@@ -177,6 +185,7 @@ async def get_form():
             .nav-link {{ display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #dd6b20; font-weight: 500; }}
             .other-input-field {{ border-color: #ed8936; background-color: #fffaf0; }}
             .other-input-field:focus {{ box-shadow: 0 0 0 1px #ed8936; }}
+            #existingDataContainer {{ margin-top: 40px; }}
         </style>
     </head>
     <body>
@@ -191,6 +200,9 @@ async def get_form():
             <div id="dlaContainer"></div>
             <button type="button" class="btn btn-secondary" onclick="addDLA()" style="width: 100%; margin-bottom: 20px;">+ เพิ่ม อปท. อื่นในจังหวัดนี้</button>
             <button type="button" class="btn btn-primary" onclick="submitData()">💾 บันทึกและส่งข้อมูล</button>
+            
+            <div id="existingDataContainer"></div>
+            
             <a href="/dashboard" class="nav-link">📊 ตรวจสอบ/ปริ้นเอกสาร/แนบไฟล์รับรอง</a>
         </div>
 
@@ -203,6 +215,29 @@ async def get_form():
                 dbData = await res.json();
             }}
             
+            async function loadExistingData(prov) {{
+                const container = document.getElementById('existingDataContainer');
+                if(!prov) {{ container.innerHTML = ''; return; }}
+                
+                const res = await fetch('/api/saved_schools?province=' + encodeURIComponent(prov));
+                const data = await res.json();
+                
+                if(data.length === 0) {{
+                    container.innerHTML = ''; return;
+                }}
+                
+                let html = '<div style="background:#fffaf0; padding:15px; border-radius:8px; border:1px solid #feebc8; margin-top:30px;">';
+                html += '<h3 style="color:#c05621; margin-top:0; border-bottom:1px solid #fbd38d; padding-bottom:10px;">📋 ข้อมูลที่จังหวัดเคยบันทึกไว้แล้ว (' + data.length + ' โรงเรียน)</h3>';
+                html += '<p style="font-size:13px; color:#555; margin-bottom:10px;">ระบบดึงข้อมูลมาแสดงเพื่อป้องกันการกรอกซ้ำ หากต้องการแก้ไขข้อมูลเดิม ให้ไปที่เมนูตรวจสอบ/ปริ้นเอกสาร</p>';
+                html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+                html += '<tr style="background:#feebc8;"><th style="border:1px solid #fbd38d; padding:8px; text-align:left;">อปท.</th><th style="border:1px solid #fbd38d; padding:8px; text-align:left;">โรงเรียน</th><th style="border:1px solid #fbd38d; padding:8px;">ป.1 (RT)</th><th style="border:1px solid #fbd38d; padding:8px;">ป.3 (NT)</th></tr>';
+                data.forEach(r => {{
+                    html += `<tr><td style="border:1px solid #fbd38d; padding:8px;">${{r.dla_name}}</td><td style="border:1px solid #fbd38d; padding:8px;">${{r.school_name}}</td><td style="border:1px solid #fbd38d; padding:8px; text-align:center;">${{r.rt_student_count}}</td><td style="border:1px solid #fbd38d; padding:8px; text-align:center;">${{r.nt_student_count}}</td></tr>`;
+                }});
+                html += '</table></div>';
+                container.innerHTML = html;
+            }}
+            
             document.getElementById('provinceInput').addEventListener('change', function() {{
                 const dlaContainer = document.getElementById('dlaContainer');
                 if (dlaContainer.innerHTML !== '') {{
@@ -210,7 +245,12 @@ async def get_form():
                 }}
                 dlaContainer.innerHTML = '';
                 dlaCount = 0;
-                if (this.value) {{ addDLA(); }}
+                if (this.value) {{ 
+                    addDLA(); 
+                    loadExistingData(this.value);
+                }} else {{
+                    document.getElementById('existingDataContainer').innerHTML = '';
+                }}
             }});
 
             function createSchoolHTML(dlaId) {{
@@ -802,6 +842,8 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
+        .sig-container {{ margin-top: 40px; float: right; width: 350px; font-size: 14px; font-family: 'Sarabun', sans-serif; }}
+        .sig-row {{ margin-bottom: 20px; text-align: center; width: 100%; }}
         @media print {{
             @page {{ size: A4 landscape; margin: 10mm; }}
             body {{ -webkit-print-color-adjust: exact; }}
@@ -847,13 +889,13 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top:40px; float: right; font-size: 14px; width: 350px; color: #000;">
-            <div style="margin-bottom: 20px; font-weight: 500; text-align: center;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <div style="margin-bottom: 20px; text-align: left;">(ลงชื่อ)............................................................</div>
-            <div style="margin-bottom: 20px; text-align: left; padding-left: 30px;">(.............................................................)</div>
-            <div style="margin-bottom: 20px; text-align: left;">ตำแหน่ง..........................................................</div>
-            <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px; text-align: left;">วันที่ ............./............................/.................</div>
+        <div class="sig-container">
+            <div class="sig-row" style="font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div class="sig-row">(ลงชื่อ)................................................................................</div>
+            <div class="sig-row">(.................................................................................)</div>
+            <div class="sig-row">ตำแหน่ง..............................................................................</div>
+            <div class="sig-row" style="font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div class="sig-row">วันที่ ............./............................................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
