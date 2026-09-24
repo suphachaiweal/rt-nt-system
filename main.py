@@ -889,21 +889,21 @@ async def print_page(province: str):
         <div style="margin-top: 50px; float: right; font-size: 15px; width: 420px; color: #000; font-family: 'Sarabun', sans-serif;">
             <div style="margin-bottom: 30px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
             
-            <div style="margin-bottom: 10px;">
+            <div style="margin-bottom: 20px;">
                 <span style="width: 65px; display: inline-block;">(ลงชื่อ)</span><span>......................................................................................</span>
             </div>
             <div style="margin-bottom: 20px; padding-left: 65px; text-align: center;">
                 (......................................................................)
             </div>
             
-            <div style="margin-bottom: 10px;">
+            <div style="margin-bottom: 20px;">
                 <span style="width: 65px; display: inline-block;">ตำแหน่ง</span><span>......................................................................................</span>
             </div>
             <div style="margin-bottom: 20px; padding-left: 65px; text-align: center; font-weight: 500;">
                 ท้องถิ่นจังหวัด{province}
             </div>
             
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 20px;">
                 <span style="width: 65px; display: inline-block;">วันที่</span><span>......................................................................................</span>
             </div>
         </div>
@@ -1458,8 +1458,8 @@ async def export_data(key: str = ""):
                 cell.border = thin_border
                 cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
                 
-        thai_num_format = 't#,##0.00'
-        thai_int_format = 't0'
+        thai_num_format = '[$-107041E]#,##0.00'
+        thai_int_format = '[$-107041E]0'
                 
         start_row = 6
         for i, row_data in enumerate(summary_rows):
