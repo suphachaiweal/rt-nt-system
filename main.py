@@ -55,7 +55,6 @@ except Exception as e:
 async def get_school_data():
     return JSONResponse(content=DB_DATA)
 
-# API สำหรับดึงข้อมูลเดิมที่เคยบันทึกไว้ของจังหวัดนั้นๆ มาแสดงบนหน้าฟอร์ม
 @app.get("/api/saved_schools")
 async def get_saved_schools(province: str):
     conn = get_db_connection()
@@ -887,13 +886,13 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top:40px; float: right; font-size: 14px; width: 350px; color: #000;">
-            <div style="margin-bottom: 25px; font-weight: 500; text-align: center;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <div style="margin-bottom: 25px; text-align: center;">(ลงชื่อ)............................................................</div>
-            <div style="margin-bottom: 25px; text-align: center;">(.............................................................)</div>
-            <div style="margin-bottom: 25px; text-align: center;">ตำแหน่ง..........................................................</div>
-            <div style="margin-bottom: 25px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px; text-align: center;">วันที่ ............./............................/.................</div>
+        <div style="margin-top:40px; float: right; font-size: 15px; width: 350px; color: #000; font-family: 'Sarabun', sans-serif;">
+            <div style="margin-bottom: 35px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 20px; text-align: left;">(ลงชื่อ)..........................................................................</div>
+            <div style="margin-bottom: 20px; text-align: left; padding-left: 45px;">(...................................................................)</div>
+            <div style="margin-bottom: 20px; text-align: left;">ตำแหน่ง........................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; padding-left: 45px; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 15px; text-align: left;">วันที่ ............./............................/.................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -941,7 +940,7 @@ async def export_data(key: str = ""):
     uploaded_provs = [r[0] for r in c.fetchall()]
     conn.close()
     
-    if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูล</h2>")
+    if df.empty: return HTMLResponse("<h2>ไม่มีข้อมูลให้ดาวน์โหลด</h2><br><a href='/dashboard'>← กลับไปหน้าตรวจสอบ</a>")
 
     prov_status = df.groupby('province').agg({'rt_student_count': 'sum', 'nt_student_count': 'sum'}).to_dict('index')
     df['prov_dla'] = df['province'] + "|" + df['dla_name']
@@ -1173,14 +1172,45 @@ async def export_data(key: str = ""):
             
         tracking_rows.append([i, p, status, upload_status, sch_cnt, rt_cnt, nt_cnt])
         
-    df_track = pd.DataFrame(tracking_rows)
+    # ---------------------------------------------
+    # จัดเตรียมข้อมูล Sheet 4 (ส่ง กยผ.)
+    # ---------------------------------------------
+    summary_rows = []
+    sum_row_num = 1
+    sp_row_idx = 6
+    for p in PROVINCES:
+        if p in db_provinces:
+            p_df = df[df['province'] == p]
+            rt_c = p_df['rt_student_count'].sum()
+            nt_c = p_df['nt_student_count'].sum()
+            
+            pao_rt = 10000 if rt_c > 0 else 0
+            pao_nt = 10000 if nt_c > 0 else 0
+            
+            dla_rt = sum(1000 for dla in p_df['dla_name'].unique() if p_df[p_df['dla_name'] == dla]['rt_student_count'].sum() > 0)
+            dla_nt = sum(1000 for dla in p_df['dla_name'].unique() if p_df[p_df['dla_name'] == dla]['nt_student_count'].sum() > 0)
+            
+            sch_rt = sum(250 + (x * 12) for x in p_df['rt_student_count'] if x > 0)
+            sch_nt = sum(250 + (x * 14) for x in p_df['nt_student_count'] if x > 0)
+            
+            total_rt = pao_rt + dla_rt + sch_rt
+            total_nt = pao_nt + dla_nt + sch_nt
+        else:
+            total_rt, total_nt = 0, 0
+            
+        summary_rows.append([sum_row_num, p, total_rt, total_nt, f"=SUM(C{sp_row_idx},D{sp_row_idx})"])
+        sum_row_num += 1
+        sp_row_idx += 1
+        
+    last_sum_row = 5 + len(summary_rows)
+    if len(summary_rows) > 0:
+        summary_rows.append(['รวมทั้งสิ้น', '', f"=SUM(C6:C{last_sum_row})", f"=SUM(D6:D{last_sum_row})", f"=SUM(E6:E{last_sum_row})"])
     
     file_path = "export_rt_nt_2569_calculated.xlsx"
     
     with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-        # ===============================================
-        # ชีท 1: งบประมาณ_RT_NT
-        # ===============================================
+        
+        # ==================== ชีท 1: งบประมาณ_RT_NT ====================
         df_export.to_excel(writer, index=False, header=False, startrow=5, sheet_name='งบประมาณ_RT_NT')
         ws1 = writer.sheets['งบประมาณ_RT_NT']
         
@@ -1257,9 +1287,7 @@ async def export_data(key: str = ""):
                             except: pass
                         if cell.value == 0: cell.value = "" 
                         
-        # ===============================================
-        # ชีท 2: รายงานเด็กพิเศษ
-        # ===============================================
+        # ==================== ชีท 2: รายงานเด็กพิเศษ ====================
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
         ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
@@ -1267,7 +1295,7 @@ async def export_data(key: str = ""):
         ws_sp.merge_cells('E2:P2'); ws_sp['E2'] = 'ระดับชั้น ป.1 (สอบ RT)'
         ws_sp.merge_cells('Q2:AB2'); ws_sp['Q2'] = 'ระดับชั้น ป.3 (สอบ NT)'
         
-        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
+        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤริกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
         for col_num, header in enumerate(headers, 1): ws_sp.cell(row=3, column=col_num).value = header
             
         for col in range(1, 29):
@@ -1304,9 +1332,7 @@ async def export_data(key: str = ""):
                     if c > 4: cell.alignment = Alignment(horizontal='center', vertical='center')
                     if c > 4 and cell.value == 0: cell.value = ""
                     
-        # ===============================================
-        # ชีท 3: ติดตามการรายงาน
-        # ===============================================
+        # ==================== ชีท 3: ติดตามการรายงาน ====================
         ws_track = writer.book.create_sheet('ติดตามการรายงาน')
         
         ws_track.merge_cells('A1:G1')
@@ -1318,7 +1344,6 @@ async def export_data(key: str = ""):
         ws_track['A3'].font = Font(bold=True); ws_track['A3'].fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
         ws_track['A3'].alignment = Alignment(horizontal='center'); ws_track['A3'].border = thin_border
         
-        # ป้องกัน error กรณีฐานข้อมูลว่างเปล่า (len=0) ให้ใช้ค่า 10 เป็นขั้นต่ำ
         last_track_row = max(10, 9 + len(tracking_rows) - 1)
         
         ws_track.merge_cells('A4:B4'); ws_track['A4'] = '✅ ยืนยันข้อมูลแล้ว (ล็อค)'; ws_track['A4'].border = thin_border
@@ -1368,7 +1393,6 @@ async def export_data(key: str = ""):
                     if "อัปโหลดแล้ว" in str(cell.value): cell.font = Font(color="2E7D32", bold=True)
                     else: cell.font = Font(color="C62828", bold=True)
                     
-        # จัดการแถวรวมด้านล่างสุดของชีท 3
         last_row = start_data_row + max(0, len(tracking_rows))
         ws_track.merge_cells(f'A{last_row}:D{last_row}')
         cell_total = ws_track.cell(row=last_row, column=1)
@@ -1392,7 +1416,63 @@ async def export_data(key: str = ""):
             cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
             cell.border = thin_border
 
-    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
+        # ==================== ชีท 4: ส่ง กยผ. ====================
+        ws_gpy = writer.book.create_sheet('ส่ง กยผ.')
+        
+        ws_gpy['A1'] = 'รายละเอียดงบประมาณแนบท้าย'
+        ws_gpy['A1'].font = Font(bold=True)
+        ws_gpy['A2'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2570 (กิจกรรมที่ 1)'
+        ws_gpy['A2'].font = Font(bold=True)
+        
+        ws_gpy.merge_cells('A4:A5'); ws_gpy['A4'] = 'ลำดับที่'
+        ws_gpy.merge_cells('B4:B5'); ws_gpy['B4'] = 'จังหวัด'
+        ws_gpy.merge_cells('C4:D4'); ws_gpy['C4'] = 'จำนวนเงินที่จัดสรร'
+        ws_gpy['C5'] = 'การสอบ RT'; ws_gpy['D5'] = 'การสอบ NT'
+        ws_gpy.merge_cells('E4:E5'); ws_gpy['E4'] = 'ยอดโอนจัดสรร'
+        
+        ws_gpy.column_dimensions['A'].width = 10
+        ws_gpy.column_dimensions['B'].width = 30
+        ws_gpy.column_dimensions['C'].width = 20
+        ws_gpy.column_dimensions['D'].width = 20
+        ws_gpy.column_dimensions['E'].width = 25
+        
+        for r in range(4, 6):
+            for c in range(1, 6):
+                cell = ws_gpy.cell(row=r, column=c)
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = thin_border
+                cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+                
+        start_row = 6
+        for i, row_data in enumerate(summary_rows):
+            r = start_row + i
+            is_last = (i == len(summary_rows) - 1)
+            for c in range(1, 6):
+                cell = ws_gpy.cell(row=r, column=c)
+                cell.value = row_data[c-1]
+                cell.border = thin_border
+                
+                if is_last:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                    if c > 2:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        cell.number_format = '#,##0'
+                    elif c == 1:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                else:
+                    if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
+                    elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
+                    else:
+                        cell.alignment = Alignment(horizontal='right', vertical='center')
+                        if cell.value != 0: cell.number_format = '#,##0'
+                        else: cell.value = ""
+        
+        if len(summary_rows) > 0:
+            ws_gpy.merge_cells(f'A{start_row + len(summary_rows) - 1}:B{start_row + len(summary_rows) - 1}')
+
+    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2570.xlsx")
 
 @app.get("/edit/{school_id}", response_class=HTMLResponse)
 async def edit_page(school_id: int):
