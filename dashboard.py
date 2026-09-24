@@ -2,7 +2,9 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 import pandas as pd
 import json
-from main import app, get_db_connection, PROVINCES  # ดึงระบบเดิมจาก main.py มาทำงานร่วมกัน
+
+# ดึงฟังก์ชันและตัวแปรจากระบบเดิม (v1.0_Stable) มาใช้งานโดยไม่ต้องแก้ไฟล์หลัก
+from main import app, get_db_connection, PROVINCES
 
 @app.get("/overview", response_class=HTMLResponse)
 async def view_public_dashboard():
@@ -55,9 +57,13 @@ async def view_public_dashboard():
         <style>
             body {{ font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }}
             .container {{ max-width: 1200px; margin: auto; }}
-            .header-banner {{ text-align: center; margin-bottom: 20px; }}
+            .header-banner {{ text-align: center; margin-bottom: 15px; }}
             .header-banner h1 {{ font-size: 24px; color: #000; margin-bottom: 10px; }}
             .welcome-bar {{ background-color: #fdf5e6; border: 1px solid #fbeed5; color: #b7791f; text-align: center; padding: 10px; font-weight: bold; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
+            
+            .action-bar {{ text-align: right; margin-bottom: 15px; }}
+            .btn-primary-large {{ background-color: #2b6cb0; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }}
+            .btn-primary-large:hover {{ background-color: #2c5282; }}
             
             .section-card {{ background: #fff; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
             .section-header {{ background-color: #e9ecef; padding: 12px 20px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #dee2e6; color: #495057; display: flex; align-items: center; gap: 10px; }}
@@ -65,12 +71,9 @@ async def view_public_dashboard():
             .table-layout {{ width: 100%; border-collapse: collapse; }}
             .table-layout td {{ padding: 12px 20px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }}
             .table-layout tr:last-child td {{ border-bottom: none; }}
-            .td-label {{ width: 35%; color: #333; }}
+            .td-label {{ width: 40%; color: #333; }}
             .td-value {{ width: 15%; text-align: center; font-weight: bold; }}
-            .td-progress {{ width: 40%; }}
-            .td-detail {{ width: 10%; text-align: right; }}
-            .td-detail a {{ color: #dc3545; text-decoration: none; font-size: 12px; }}
-            .td-detail a:hover {{ text-decoration: underline; }}
+            .td-progress {{ width: 45%; }}
             
             .progress-bg {{ background-color: #e9ecef; border-radius: 4px; height: 12px; width: 100%; overflow: hidden; margin-top: 5px; }}
             .progress-bar-cyan {{ background-color: #17a2b8; height: 100%; }}
@@ -87,6 +90,18 @@ async def view_public_dashboard():
             .data-row {{ display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid #eee; font-size: 14px; }}
             .data-row:nth-child(even) {{ background-color: #fcfcfc; }}
             .val-num {{ font-weight: 500; text-align: right; }}
+            
+            .btn-print {{ background-color: #38a169; color: white; padding: 12px 30px; border: none; border-radius: 6px; font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); transition: 0.2s; }}
+            .btn-print:hover {{ background-color: #2f855a; }}
+            
+            /* คำสั่ง CSS สำหรับการสั่ง Print โดยเฉพาะ */
+            @media print {{
+                body {{ background-color: #fff; padding: 0; }}
+                .no-print {{ display: none !important; }}
+                .section-card {{ box-shadow: none; border: 1px solid #ccc; break-inside: avoid; margin-bottom: 15px; }}
+                .welcome-bar {{ box-shadow: none; border: 1px solid #ccc; }}
+                .progress-bg {{ border: 1px solid #ccc; }}
+            }}
         </style>
     </head>
     <body>
@@ -96,7 +111,12 @@ async def view_public_dashboard():
             </div>
             
             <div class="welcome-bar">
-                “ ยินดีต้อนรับ องค์กรปกครองส่วนท้องถิ่น เข้าสู่ระบบ ”
+                “ ยินดีต้อนรับ ท้องถิ่นจังหวัด เข้าสู่ระบบ ”
+            </div>
+            
+            <!-- ซ่อนปุ่มนี้เวลาปริ้นต์ -->
+            <div class="action-bar no-print">
+                <a href="/" class="btn-primary-large">📝 เข้าระบบรายงานข้อมูล (สำหรับจังหวัด)</a>
             </div>
             
             <!-- Section 1: Progress -->
@@ -110,7 +130,6 @@ async def view_public_dashboard():
                             <div style="font-size: 11px; text-align: right;">{round((sent_provinces_count/total_provinces)*100,2)}%</div>
                             <div class="progress-bg"><div class="progress-bar-cyan" style="width: {(sent_provinces_count/total_provinces)*100}%;"></div></div>
                         </td>
-                        <td class="td-detail"><a href="/">เข้าระบบรายงาน</a></td>
                     </tr>
                     <tr>
                         <td class="td-label">สถานะการยืนยันและล็อคข้อมูล</td>
@@ -119,7 +138,6 @@ async def view_public_dashboard():
                             <div style="font-size: 11px; text-align: right;">{locked_pct}%</div>
                             <div class="progress-bg"><div class="progress-bar-green" style="width: {locked_pct}%;"></div></div>
                         </td>
-                        <td class="td-detail"></td>
                     </tr>
                     <tr>
                         <td class="td-label">สถานะการอัปโหลดไฟล์เอกสารรับรอง</td>
@@ -128,12 +146,10 @@ async def view_public_dashboard():
                             <div style="font-size: 11px; text-align: right;">{uploaded_pct}%</div>
                             <div class="progress-bg"><div class="progress-bar-cyan" style="width: {uploaded_pct}%;"></div></div>
                         </td>
-                        <td class="td-detail"></td>
                     </tr>
                     <tr>
                         <td class="td-label" style="font-weight: bold;">จำนวนโรงเรียนที่ร่วมสอบทั้งหมด</td>
                         <td class="td-value" colspan="2" style="text-align: left; color: #28a745;">{total_schools:,} แห่ง</td>
-                        <td class="td-detail"></td>
                     </tr>
                 </table>
             </div>
@@ -173,8 +189,12 @@ async def view_public_dashboard():
                 </div>
             </div>
             
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="/dashboard" style="color: #666; text-decoration: none; font-size: 14px;">← กลับไปหน้าเข้าสู่ระบบเจ้าหน้าที่</a>
+            <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+                <button onclick="window.print()" class="btn-print no-print">🖨️ ออกรายงานภาพรวม</button>
+            </div>
+            
+            <div class="no-print" style="text-align: center; margin-top: 20px;">
+                <a href="/dashboard" style="color: #666; text-decoration: underline; font-size: 13px;">เข้าสู่ระบบเจ้าหน้าที่ส่วนกลาง (ตรวจสอบรายจังหวัด)</a>
             </div>
         </div>
     </body>
