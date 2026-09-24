@@ -886,30 +886,26 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top: 50px; float: right; font-size: 15px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
-            <div style="text-align: center; font-weight: 500; margin-bottom: 25px;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <table style="width: 100%; border: none; font-size: 15px; border-collapse: collapse;">
-                <tr>
-                    <td style="width: 20%; white-space: nowrap; border: none; padding: 5px 0;">(ลงชื่อ)</td>
-                    <td style="width: 80%; border: none; border-bottom: 1px dotted #000; padding: 5px 0;"></td>
-                </tr>
-                <tr>
-                    <td style="border: none;"></td>
-                    <td style="border: none; text-align: center; padding: 5px 0;">(....................................................................)</td>
-                </tr>
-                <tr>
-                    <td style="white-space: nowrap; border: none; padding: 5px 0;">ตำแหน่ง</td>
-                    <td style="border: none; border-bottom: 1px dotted #000; padding: 5px 0;"></td>
-                </tr>
-                <tr>
-                    <td style="border: none;"></td>
-                    <td style="border: none; text-align: center; font-weight: 500; padding: 5px 0;">ท้องถิ่นจังหวัด{province}</td>
-                </tr>
-                <tr>
-                    <td style="white-space: nowrap; border: none; padding: 5px 0;">วันที่</td>
-                    <td style="border: none; border-bottom: 1px dotted #000; padding: 5px 0;"></td>
-                </tr>
-            </table>
+        <div style="margin-top: 50px; float: right; font-size: 15px; width: 420px; color: #000; font-family: 'Sarabun', sans-serif;">
+            <div style="margin-bottom: 30px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            
+            <div style="margin-bottom: 10px;">
+                <span style="width: 65px; display: inline-block;">(ลงชื่อ)</span><span>......................................................................................</span>
+            </div>
+            <div style="margin-bottom: 20px; padding-left: 65px; text-align: center;">
+                (......................................................................)
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <span style="width: 65px; display: inline-block;">ตำแหน่ง</span><span>......................................................................................</span>
+            </div>
+            <div style="margin-bottom: 20px; padding-left: 65px; text-align: center; font-weight: 500;">
+                ท้องถิ่นจังหวัด{province}
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <span style="width: 65px; display: inline-block;">วันที่</span><span>......................................................................................</span>
+            </div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -1462,8 +1458,8 @@ async def export_data(key: str = ""):
                 cell.border = thin_border
                 cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
                 
-        thai_num_format = '[$-107041E]#,##0.00'
-        thai_int_format = '[$-107041E]0'
+        thai_num_format = 't#,##0.00'
+        thai_int_format = 't0'
                 
         start_row = 6
         for i, row_data in enumerate(summary_rows):
