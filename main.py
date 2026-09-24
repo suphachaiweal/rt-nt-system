@@ -886,13 +886,13 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top:40px; float: right; font-size: 15px; width: 350px; color: #000; font-family: 'Sarabun', sans-serif;">
-            <div style="margin-bottom: 35px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            <div style="margin-bottom: 20px; text-align: left;">(ลงชื่อ)..........................................................................</div>
-            <div style="margin-bottom: 20px; text-align: left; padding-left: 45px;">(...................................................................)</div>
-            <div style="margin-bottom: 20px; text-align: left;">ตำแหน่ง........................................................................</div>
-            <div style="margin-bottom: 20px; text-align: center; padding-left: 45px; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
-            <div style="margin-bottom: 15px; text-align: left;">วันที่ ............./............................/.................</div>
+        <div style="margin-top:60px; float: right; font-size: 15px; width: 400px; color: #000; font-family: 'Sarabun', sans-serif;">
+            <div style="margin-bottom: 40px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 20px; text-align: center;">(ลงชื่อ)..........................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center;">(..........................................................................)</div>
+            <div style="margin-bottom: 20px; text-align: left; padding-left: 20px;">ตำแหน่ง........................................................................</div>
+            <div style="margin-bottom: 20px; text-align: center; font-weight: 500;">ท้องถิ่นจังหวัด{province}</div>
+            <div style="margin-bottom: 15px; text-align: left; padding-left: 20px;">วันที่...............................................................................</div>
         </div>
         <div style="clear: both;"></div>
     </div>
@@ -1295,7 +1295,7 @@ async def export_data(key: str = ""):
         ws_sp.merge_cells('E2:P2'); ws_sp['E2'] = 'ระดับชั้น ป.1 (สอบ RT)'
         ws_sp.merge_cells('Q2:AB2'); ws_sp['Q2'] = 'ระดับชั้น ป.3 (สอบ NT)'
         
-        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤริกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
+        headers = ['ลำดับ', 'จังหวัด', 'อปท.', 'โรงเรียน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน', 'รวม', 'ปกติ', 'พิเศษรวม', 'เห็น', 'ได้ยิน', 'ปัญญา', 'ร่างกาย', 'LD', 'พูด/ภาษา', 'พฤติกรรม', 'ออทิสติก', 'ซ้อน']
         for col_num, header in enumerate(headers, 1): ws_sp.cell(row=3, column=col_num).value = header
             
         for col in range(1, 29):
@@ -1419,10 +1419,11 @@ async def export_data(key: str = ""):
         # ==================== ชีท 4: ส่ง กยผ. ====================
         ws_gpy = writer.book.create_sheet('ส่ง กยผ.')
         
-        ws_gpy['A1'] = 'รายละเอียดงบประมาณแนบท้าย'
-        ws_gpy['A1'].font = Font(bold=True)
-        ws_gpy['A2'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2570 (กิจกรรมที่ 1)'
-        ws_gpy['A2'].font = Font(bold=True)
+        ws_gpy.merge_cells('A1:E1'); ws_gpy['A1'] = 'รายละเอียดงบประมาณแนบท้าย'
+        ws_gpy['A1'].font = Font(bold=True); ws_gpy['A1'].alignment = Alignment(horizontal='center')
+        
+        ws_gpy.merge_cells('A2:E2'); ws_gpy['A2'] = 'โครงการประเมินคุณภาพนักเรียนระดับการศึกษาภาคบังคับ ปีการศึกษา 2569 (กิจกรรมที่ 1)'
+        ws_gpy['A2'].font = Font(bold=True); ws_gpy['A2'].alignment = Alignment(horizontal='center')
         
         ws_gpy.merge_cells('A4:A5'); ws_gpy['A4'] = 'ลำดับที่'
         ws_gpy.merge_cells('B4:B5'); ws_gpy['B4'] = 'จังหวัด'
@@ -1430,11 +1431,11 @@ async def export_data(key: str = ""):
         ws_gpy['C5'] = 'การสอบ RT'; ws_gpy['D5'] = 'การสอบ NT'
         ws_gpy.merge_cells('E4:E5'); ws_gpy['E4'] = 'ยอดโอนจัดสรร'
         
-        ws_gpy.column_dimensions['A'].width = 10
+        ws_gpy.column_dimensions['A'].width = 12
         ws_gpy.column_dimensions['B'].width = 30
-        ws_gpy.column_dimensions['C'].width = 20
-        ws_gpy.column_dimensions['D'].width = 20
-        ws_gpy.column_dimensions['E'].width = 25
+        ws_gpy.column_dimensions['C'].width = 25
+        ws_gpy.column_dimensions['D'].width = 25
+        ws_gpy.column_dimensions['E'].width = 30
         
         for r in range(4, 6):
             for c in range(1, 6):
@@ -1443,6 +1444,9 @@ async def export_data(key: str = ""):
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
                 cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+                
+        thai_num_format = '[$-107041E]#,##0.00'
+        thai_int_format = '[$-107041E]0'
                 
         start_row = 6
         for i, row_data in enumerate(summary_rows):
@@ -1458,21 +1462,26 @@ async def export_data(key: str = ""):
                     cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
                     if c > 2:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
-                        cell.number_format = '#,##0'
+                        cell.number_format = thai_num_format
                     elif c == 1:
                         cell.alignment = Alignment(horizontal='center', vertical='center')
                 else:
-                    if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
-                    elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
+                    if c == 1: 
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.number_format = thai_int_format
+                    elif c == 2: 
+                        cell.alignment = Alignment(horizontal='left', vertical='center')
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
-                        if cell.value != 0: cell.number_format = '#,##0'
-                        else: cell.value = ""
+                        if cell.value != 0 and cell.value != "" and cell.value is not None: 
+                            cell.number_format = thai_num_format
+                        else: 
+                            cell.value = ""
         
         if len(summary_rows) > 0:
             ws_gpy.merge_cells(f'A{start_row + len(summary_rows) - 1}:B{start_row + len(summary_rows) - 1}')
 
-    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2570.xlsx")
+    return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
 
 @app.get("/edit/{school_id}", response_class=HTMLResponse)
 async def edit_page(school_id: int):
