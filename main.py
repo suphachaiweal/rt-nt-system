@@ -914,32 +914,33 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top: 50px; float: right; font-size: 15px; width: 420px; color: #000; font-family: 'Sarabun', sans-serif;">
-            <div style="margin-bottom: 30px; text-align: center; font-weight: 500;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+        <div style="margin-top: 30px; float: right; font-size: 13px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
+            <div style="margin-bottom: 15px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
             
-            <div style="margin-bottom: 20px;">
-                <span style="width: 65px; display: inline-block;">(ลงชื่อ)</span><span>......................................................................................</span>
+            <div style="margin-bottom: 8px;">
+                <span style="width: 55px; display: inline-block;">(ลงชื่อ)</span><span>...............................................................................</span>
             </div>
-            <div style="margin-bottom: 20px; padding-left: 65px; text-align: center;">
-                (......................................................................)
+            <div style="margin-bottom: 12px; padding-left: 55px; text-align: center;">
+                (..................................................................)
             </div>
             
-            <div style="margin-bottom: 20px;">
-                <span style="width: 65px; display: inline-block;">ตำแหน่ง</span><span>......................................................................................</span>
+            <div style="margin-bottom: 8px;">
+                <span style="width: 55px; display: inline-block;">ตำแหน่ง</span><span>...............................................................................</span>
             </div>
-            <div style="margin-bottom: 20px; padding-left: 65px; text-align: center; font-weight: 500;">
+            <div style="margin-bottom: 12px; padding-left: 55px; text-align: center; font-weight: 600;">
                 ท้องถิ่นจังหวัด{province}
             </div>
             
-            <div style="margin-bottom: 20px;">
-                <span style="width: 65px; display: inline-block;">วันที่</span><span>......................................................................................</span>
+            <div style="margin-bottom: 8px;">
+                <span style="width: 55px; display: inline-block;">วันที่</span><span>...............................................................................</span>
             </div>
         </div>
         <div style="clear: both;"></div>
+        <div style="height: 30px;"></div>
     </div>
     <script>window.onload = function() {{ window.print(); }};</script>
-    <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
-    กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; color: #666; font-size: 12px; padding-top: 10px; padding-bottom: 5px; border-top: 1px dashed #ccc; background: white;">
+        กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
     </div>
     </body></html>'''
     return HTMLResponse(content=html_content)
