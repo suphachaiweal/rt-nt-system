@@ -592,7 +592,7 @@ async def view_dashboard(province: str = ""):
     
     prov_opts = get_province_options(selected=province)
     prov_opts_clean = prov_opts.replace('<option value="">-- เลือกจังหวัด --</option>', '')
-    
+    if province: df = df[df['province'] == province]
     if df.empty:
         table_html = "<p style='text-align: center; color: #666;'>ยังไม่มีข้อมูลการรายงานในระบบ</p>"
     else:
