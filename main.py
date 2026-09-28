@@ -930,36 +930,49 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div class="final-section">
-        <div style="display: flex; margin-bottom: 15px;">
-            <div style="width: 55px;">(ลงชื่อ)</div>
-            <div style="flex: 1; text-align: center;">
-                <div>.......................................................</div>
-                <div style="margin-top: 10px;">(.......................................................)</div>
+  <!-- บล็อกลายเซ็น (คืนค่าโครงสร้างเดิม ชิดขวา) -->
+        <div style="margin-top: 30px; float: right; font-size: 13px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
+            <div style="margin-bottom: 20px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">(ลงชื่อ)</div>
+                <div style="flex: 1; text-align: center;">
+                    <div>.......................................................</div>
+                    <div style="margin-top: 10px;">(.......................................................)</div>
+                </div>
+            </div>
+
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">ตำแหน่ง</div>
+                <div style="flex: 1; text-align: center;">
+                    <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
+                </div>
+            </div>
+
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">วันที่</div>
+                <div style="flex: 1; text-align: center;">
+                    <div>.......................................................</div>
+                </div>
             </div>
         </div>
 
-        <div style="display: flex; margin-bottom: 15px;">
-            <div style="width: 55px;">ตำแหน่ง</div>
-            <div style="flex: 1; text-align: center;">
-                <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
-            </div>
+        <!-- เคลียร์ Float เพื่อให้ส่วนต่อไปอยู่ด้านล่างลายเซ็น ไม่ทับซ้อนกัน -->
+        <div style="clear: both;"></div>
+
+        <!-- หมายเหตุ: กรอบเตือนใจให้อัปโหลดเอกสาร -->
+        <div style="margin-top: 20px; padding: 12px; border: 1px dashed #a0aec0; background-color: #f8fafc; text-align: center; font-size: 12px; color: #2d3748; border-radius: 6px; page-break-inside: avoid;">
+            <strong>หมายเหตุ:</strong> เมื่อผู้มีอำนาจลงนามเรียบร้อยแล้ว กรุณาสแกนเอกสารฉบับนี้และนำไปอัปโหลดกลับเข้าสู่ระบบ เพื่อเสร็จสิ้นขั้นตอนการรายงานข้อมูล
         </div>
 
-        <div style="display: flex; margin-bottom: 15px;">
-            <div style="width: 55px;">วันที่</div>
-            <div style="flex: 1; text-align: center;">
-                <div>.......................................................</div>
-            </div>
-        </div>
-    </div>
-<!-- ลบ position: fixed ออก และใส่ clear: both; เพื่อให้มันไหลไปอยู่หน้าสุดท้ายต่อจากลายเซ็นตามธรรมชาติ -->
-        <div style="clear: both; padding-top: 50px; text-align: center; font-size: 11px; color: #555;">
+        <!-- ข้อความกองการศึกษา (อยู่ล่างสุด ปิดท้ายเอกสาร) -->
+        <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #555; page-break-inside: avoid;">
             กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
         </div>
-    <div style="clear: both;"></div>
+        
+    </div>
+    
     <div style="height: 30px;"></div>
-</div>
 
 <script>window.onload = function() {{ window.print(); }};</script>
 </body>
