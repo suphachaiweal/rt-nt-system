@@ -930,30 +930,38 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-  <!-- บล็อกลายเซ็น (คืนค่าโครงสร้างเดิม ชิดขวา) -->
+  <!-- บล็อกลายเซ็น (จัดเรียง 4 บรรทัด + วันที่ ตามรูปแบบใหม่ กึ่งกลางเป๊ะ) -->
         <div style="margin-top: 30px; float: right; font-size: 13px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
             <div style="margin-bottom: 20px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
             
-            <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">(ลงชื่อ)</div>
-                <div style="flex: 1; text-align: center;">
-                    <div>.......................................................</div>
-                    <div style="margin-top: 10px;">(.......................................................)</div>
-                </div>
+            <!-- บรรทัดที่ 1: ลงชื่อ -->
+            <div style="display: flex; margin-bottom: 8px;">
+                <div style="width: 50px;">(ลงชื่อ)</div>
+                <div style="flex: 1; text-align: center;">.......................................................</div>
             </div>
 
-            <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">ตำแหน่ง</div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
-                </div>
+            <!-- บรรทัดที่ 2: วงเล็บชื่อ (กึ่งกลางอัตโนมัติ) -->
+            <div style="display: flex; margin-bottom: 8px;">
+                <div style="width: 50px;"></div>
+                <div style="flex: 1; text-align: center;">(.......................................................)</div>
             </div>
 
+            <!-- บรรทัดที่ 3: จุดไข่ปลาตำแหน่งอื่น (กึ่งกลางอัตโนมัติ) -->
+            <div style="display: flex; margin-bottom: 8px;">
+                <div style="width: 50px;"></div>
+                <div style="flex: 1; text-align: center;">.......................................................</div>
+            </div>
+
+            <!-- บรรทัดที่ 4: ตำแหน่ง (กึ่งกลางอัตโนมัติ) -->
+            <div style="display: flex; margin-bottom: 20px;">
+                <div style="width: 50px;"></div>
+                <div style="flex: 1; text-align: center;">ท้องถิ่นจังหวัด{province}</div>
+            </div>
+
+            <!-- วันที่: คำว่า วันที่ ตรงกับ (ลงชื่อ) และจุดยาวเท่าบรรทัดที่ 3 -->
             <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">วันที่</div>
-                <div style="flex: 1; text-align: center;">
-                    <div>.......................................................</div>
-                </div>
+                <div style="width: 50px;">วันที่</div>
+                <div style="flex: 1; text-align: center;">.......................................................</div>
             </div>
         </div>
 
