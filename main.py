@@ -959,7 +959,9 @@ async def upload_file(province: str, file: UploadFile = File(...)):
         return HTMLResponse(f"<script>alert('❌ ไฟล์มีขนาดใหญ่เกิน 5 MB ระบบปฏิเสธการอัปโหลด'); window.location.href='/dashboard?province={province}';</script>")
         
     file_ext = os.path.splitext(file.filename)[1]
-    save_filename = f"signed_{datetime.now().strftime('%Y%m%d%H%M%S')}{file_ext}"
+    
+    # กำหนดชื่อไฟล์ใหม่ให้มีชื่อจังหวัดและ timestamp ชัดเจน
+    save_filename = f"RTNT2569_{province}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
     
     try: supabase.storage.from_("signed-docs").upload(save_filename, file_bytes, {"content-type": file.content_type})
     except: pass
