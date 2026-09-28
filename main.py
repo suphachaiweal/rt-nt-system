@@ -872,11 +872,20 @@ async def print_page(province: str):
         @media print {{
         @page {{ 
             size: A4 landscape; 
-            margin: 10mm; 
+            margin: 10mm 10mm 25mm 10mm; /* ขยายขอบล่าง (bottom margin) เป็น 25mm เพื่อเว้นพื้นที่ให้ข้อความส่วนท้ายโดยเฉพาะ */
         }}
         body {{ -webkit-print-color-adjust: exact; }}
         .no-print {{ display: none; }}
-        thead {{ display: table-header-group; }}
+        
+        /* ปรับระยะห่างตารางไม่ให้ชิดขอบล่างเกินไป */
+        table {{
+            margin-bottom: 15px;
+        }}
+        
+        /* ล็อกหัวตารางให้แสดงซ้ำสวยงามทุกหน้ากระดาษ */
+        thead {{ 
+            display: table-header-group; 
+        }}
     }}
     </style>
     </head><body>
