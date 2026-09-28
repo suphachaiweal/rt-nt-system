@@ -508,6 +508,9 @@ async def get_form():
             
             window.onload = async () => {{ await fetchSchoolData(); }};
         </script>
+        <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
+    กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+        </div>
     </body>
     </html>'''
     return HTMLResponse(content=html_content)
@@ -749,6 +752,9 @@ async def view_dashboard(province: str = ""):
                 if (pass) window.location.href = "/unlock/" + encodeURIComponent(prov) + "?key=" + encodeURIComponent(pass);
             }}
         </script>
+        <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
+    กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+        </div>
     </body>
     </html>'''
     return HTMLResponse(content=html_content)
@@ -910,6 +916,9 @@ async def print_page(province: str):
         <div style="clear: both;"></div>
     </div>
     <script>window.onload = function() {{ window.print(); }};</script>
+    <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
+    กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+    </div>
     </body></html>'''
     return HTMLResponse(content=html_content)
 
@@ -1638,6 +1647,9 @@ async def edit_page(school_id: int):
             }}
             window.onload = () => {{ calcSpecial('rt'); calcSpecial('nt'); }};
         </script>
+        <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
+    กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+        </div>
     </body>
     </html>'''
     return HTMLResponse(content=html_content)
