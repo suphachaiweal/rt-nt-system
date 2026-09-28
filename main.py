@@ -915,24 +915,29 @@ async def print_page(province: str):
         </table>
         
         <div style="margin-top: 30px; float: right; font-size: 13px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
-            <div style="margin-bottom: 15px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
+            <div style="margin-bottom: 20px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
             
-            <div style="margin-bottom: 8px;">
-                <span style="width: 55px; display: inline-block;">(ลงชื่อ)</span><span>...............................................................................</span>
-            </div>
-            <div style="margin-bottom: 12px; padding-left: 55px; text-align: center;">
-                (..................................................................)
-            </div>
-            
-            <div style="margin-bottom: 8px;">
-                <span style="width: 55px; display: inline-block;">ตำแหน่ง</span><span>...............................................................................</span>
-            </div>
-            <div style="margin-bottom: 12px; padding-left: 55px; text-align: center; font-weight: 600;">
-                ท้องถิ่นจังหวัด{province}
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">(ลงชื่อ)</div>
+                <div style="flex: 1; text-align: center;">
+                    <div>....................................................................................</div>
+                    <div style="margin-top: 5px;">(..................................................................)</div>
+                </div>
             </div>
             
-            <div style="margin-bottom: 8px;">
-                <span style="width: 55px; display: inline-block;">วันที่</span><span>...............................................................................</span>
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">ตำแหน่ง</div>
+                <div style="flex: 1; text-align: center;">
+                    <div>....................................................................................</div>
+                    <div style="margin-top: 5px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; margin-bottom: 15px;">
+                <div style="width: 55px;">วันที่</div>
+                <div style="flex: 1; text-align: center;">
+                    <div>....................................................................................</div>
+                </div>
             </div>
         </div>
         <div style="clear: both;"></div>
