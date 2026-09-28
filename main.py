@@ -700,7 +700,7 @@ async def view_dashboard(province: str = ""):
             else:
                 action_html += f'''
                         <form action="/upload/{province}" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px;">
-                            <input type="file" name="file" required accept=".pdf, .jpg, .png" style="font-size: 12px; width: 100%;">
+                            <input type="file" name="file" required accept=".pdf, .jpg, .png" style="font-size: 12px; width: 100%;" onchange="if(this.files[0].size > 5 * 1024 * 1024){ alert('❌ ไฟล์ใหญ่เกิน 5 MB! กรุณาลดขนาดไฟล์ก่อนอัปโหลด (ขนาดของคุณ: ' + (this.files[0].size / 1024 / 1024).toFixed(2) + ' MB)'); this.value = ''; }">
                             <button type="submit" style="background-color: #3182ce; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;">📤 ยืนยันไฟล์</button>
                         </form>
                 '''
@@ -952,11 +952,18 @@ async def print_page(province: str):
 
 @app.post("/upload/{province}")
 async def upload_file(province: str, file: UploadFile = File(...)):
+    file_bytes = await file.read()
+    
+    # เช็คขนาดไฟล์ หากเกิน 5 MB (5 * 1024 * 1024 bytes) ให้ตีกลับทันที
+    if len(file_bytes) > 5 * 1024 * 1024:
+        return HTMLResponse(f"<script>alert('❌ ไฟล์มีขนาดใหญ่เกิน 5 MB ระบบปฏิเสธการอัปโหลด'); window.location.href='/dashboard?province={province}';</script>")
+        
     file_ext = os.path.splitext(file.filename)[1]
     save_filename = f"signed_{datetime.now().strftime('%Y%m%d%H%M%S')}{file_ext}"
-    file_bytes = await file.read()
+    
     try: supabase.storage.from_("signed-docs").upload(save_filename, file_bytes, {"content-type": file.content_type})
     except: pass
+    
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO province_uploads (province, file_path) VALUES (%s, %s) ON CONFLICT (province) DO UPDATE SET file_path = EXCLUDED.file_path", (province, save_filename))
