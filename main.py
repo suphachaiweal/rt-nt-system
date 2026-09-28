@@ -921,7 +921,7 @@ async def print_page(province: str):
                 <div style="width: 55px;">(ลงชื่อ)</div>
                 <div style="flex: 1; text-align: center;">
                     <div>....................................................................................</div>
-                    <div style="margin-top: 5px;">(..................................................................)</div>
+                    <div style="margin-top: 10px;">(..................................................................)</div>
                 </div>
             </div>
             
@@ -929,7 +929,7 @@ async def print_page(province: str):
                 <div style="width: 55px;">ตำแหน่ง</div>
                 <div style="flex: 1; text-align: center;">
                     <div>....................................................................................</div>
-                    <div style="margin-top: 5px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
+                    <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
                 </div>
             </div>
             
