@@ -870,10 +870,19 @@ async def print_page(province: str):
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
         @media print {{
-            @page {{ size: A4 landscape; margin: 10mm; }}
-            body {{ -webkit-print-color-adjust: exact; }}
-            .no-print {{ display: none; }}
+        @page {{ 
+            size: A4 landscape; 
+            margin: 10mm 10mm 15mm 10mm; /* เพิ่มขอบล่างเป็น 15mm เพื่อเว้นพื้นที่ปลอดภัยไม่ให้ชนขอบ */
         }}
+        body {{ -webkit-print-color-adjust: exact; }}
+        .no-print {{ display: none; }}
+        
+        /* ป้องกันแถวตารางขาดครึ่งหรือโดนขอบล่างบัง ถ้าริมขอบจะยกไปหน้าใหม่ทั้งแถว */
+        tr {{
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+    }}
     </style>
     </head><body>
     <div style="width:100%; margin:auto;">
