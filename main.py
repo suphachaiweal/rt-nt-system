@@ -869,24 +869,25 @@ async def print_page(province: str):
         .truncate {{ max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
         .sp-col {{ color: #b7791f; }}
         .ref-box {{ float: right; border: 1px dashed #666; padding: 5px 10px; font-size: 11px; color: #333; }}
+        .final-section {{
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-top: 30px;
+    }}
         @media print {{
         @page {{ 
             size: A4 landscape; 
-            margin: 10mm 10mm 18mm 10mm; /* กำหนดขอบล่าง 18mm ให้เป็นเขตปลอดภัยสำหรับก้อนข้อความส่วนท้ายโดยเฉพาะ */
+            margin: 10mm; 
         }}
         body {{ -webkit-print-color-adjust: exact; }}
         .no-print {{ display: none; }}
+        thead {{ display: table-header-group; }}
         
-        /* บังคับหัวตารางให้แสดงซ้ำสวยงามทุกหน้ากระดาษ */
-        thead {{ 
-            display: table-header-group; 
-        }}
-
-        /* ป้องกันไม่ให้แถวตารางช่วงท้าย, แถวสรุปยอด, และก้อนข้อความต่อท้าย ถูกตัดขาดออกจากกัน 
-           ถ้าพื้นที่หน้าแรกเหลือไม่พอ ระบบจะปัดกลุ่มนี้ไปขึ้นหน้าใหม่ทั้งก้อนทันทีโดยไม่ทับซ้อน */
-        tr:nth-last-child(-n+5), .summary-row, .footer-note-section {{
+        /* ล็อกส่วนลงลายเซ็นและข้อความกองการศึกษาให้อยู่เป็นก้อนเดียวกัน ไปตกที่หน้าสุดท้ายทันที */
+        .final-section {{
             break-inside: avoid;
             page-break-inside: avoid;
+            margin-top: 25px;
         }}
     }}
     </style>
@@ -929,40 +930,43 @@ async def print_page(province: str):
             </tbody>
         </table>
         
-        <div style="margin-top: 30px; float: right; font-size: 13px; width: 380px; color: #000; font-family: 'Sarabun', sans-serif;">
-            <div style="margin-bottom: 20px; text-align: center; font-weight: 600;">ขอรับรองว่าข้อมูลดังกล่าวถูกต้องเป็นความจริงทุกประการ</div>
-            
-            <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">(ลงชื่อ)</div>
-                <div style="flex: 1; text-align: center;">
-                    <div>....................................................................................</div>
-                    <div style="margin-top: 10px;">(..................................................................)</div>
-                </div>
-            </div>
-            
-            <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">ตำแหน่ง</div>
-                <div style="flex: 1; text-align: center;">
-                    <div>....................................................................................</div>
-                    <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
-                </div>
-            </div>
-            
-            <div style="display: flex; margin-bottom: 15px;">
-                <div style="width: 55px;">วันที่</div>
-                <div style="flex: 1; text-align: center;">
-                    <div>....................................................................................</div>
-                </div>
+        <div class="final-section">
+        <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 55px;">(ลงชื่อ)</div>
+            <div style="flex: 1; text-align: center;">
+                <div>.......................................................</div>
+                <div style="margin-top: 10px;">(.......................................................)</div>
             </div>
         </div>
-        <div style="clear: both;"></div>
-        <div style="height: 30px;"></div>
+
+        <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 55px;">ตำแหน่ง</div>
+            <div style="flex: 1; text-align: center;">
+                <div style="margin-top: 10px; font-weight: 600;">ท้องถิ่นจังหวัด{province}</div>
+            </div>
+        </div>
+
+        <div style="display: flex; margin-bottom: 15px;">
+            <div style="width: 55px;">วันที่</div>
+            <div style="flex: 1; text-align: center;">
+                <div>.......................................................</div>
+            </div>
+        </div>
+
+        <!-- ข้อความกองการศึกษาจะไหลมาต่อท้ายที่หน้าสุดท้ายหน้าเดียวอย่างสวยงาม -->
+        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #555;">
+            กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
+        </div>
     </div>
-    <script>window.onload = function() {{ window.print(); }};</script>
-    <div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; color: #666; font-size: 12px; padding-top: 10px; padding-bottom: 5px; border-top: 1px dashed #ccc; background: white;">
-        กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
-    </div>
-    </body></html>'''
+
+    <div style="clear: both;"></div>
+    <div style="height: 30px;"></div>
+</div>
+
+<script>window.onload = function() {{ window.print(); }};</script>
+</body>
+</html>
+'''
     return HTMLResponse(content=html_content)
 
 @app.post("/upload/{province}")
