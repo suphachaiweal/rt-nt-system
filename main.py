@@ -126,7 +126,18 @@ def is_province_locked(province: str) -> bool:
     conn.close()
     return locked
 
-def get_province_options(selected=""):
+def get_province_options(selected="", locked_provs=None):
+    if locked_provs is None:
+        locked_provs = []
+    options = '<option value="" data-locked="false">-- เลือกจังหวัด --</option>'
+    for p in PROVINCES:
+        sel = 'selected' if p == selected else ''
+        if p in locked_provs:
+            # เพิ่มไอคอนและสถานะ data-locked ลงไปในตัวเลือก
+            options += f'<option value="{p}" {sel} data-locked="true">{p} 🔒 (ยืนยันแล้ว)</option>'
+        else:
+            options += f'<option value="{p}" {sel} data-locked="false">{p}</option>'
+    return options
     options = '<option value="">-- เลือกจังหวัด --</option>'
     for p in PROVINCES:
         sel = 'selected' if p == selected else ''
@@ -141,7 +152,15 @@ SPECIAL_CATEGORIES = [
 
 @app.get("/", response_class=HTMLResponse)
 async def get_form():
-    prov_opts = get_province_options()
+    # คิวรี่หาจังหวัดที่ล็อคแล้ว เพื่อส่งไปสร้าง Dropdown
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT province FROM province_locks")
+    locked_provs = [r[0] for r in c.fetchall()]
+    conn.close()
+    
+    prov_opts = get_province_options(locked_provs=locked_provs)
+    
     special_inputs_rt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input rt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
     special_inputs_nt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input nt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
     
@@ -238,7 +257,31 @@ async def get_form():
             }}
             
             document.getElementById('provinceInput').addEventListener('change', function() {{
+                const selectedOption = this.options[this.selectedIndex];
+                const isLocked = selectedOption.getAttribute('data-locked') === 'true';
+                
+                const btnAddDLA = document.querySelector('button[onclick="addDLA()"]');
+                const btnSubmit = document.querySelector('button[onclick="submitData()"]');
                 const dlaContainer = document.getElementById('dlaContainer');
+                
+                // ถ้ายืนยันแล้ว: ซ่อนปุ่มทั้งหมด แจ้งเตือน และสลับหน้าทันที
+                if (isLocked) {{
+                    if (btnAddDLA) btnAddDLA.style.display = 'none';
+                    if (btnSubmit) btnSubmit.style.display = 'none';
+                    dlaContainer.innerHTML = '';
+                    document.getElementById('existingDataContainer').innerHTML = '';
+                    
+                    setTimeout(() => {{
+                        alert('🔒 จังหวัดนี้ทำการยืนยันและล็อคข้อมูลแล้ว ไม่สามารถเพิ่มข้อมูลใหม่ได้ ระบบจะพาท่านไปหน้าตรวจสอบเอกสาร');
+                        window.location.href = "/dashboard?province=" + encodeURIComponent(this.value);
+                    }}, 100);
+                    return;
+                }} else {{
+                    // ถ้ายังไม่ล็อค: แสดงปุ่มตามปกติ
+                    if (btnAddDLA) btnAddDLA.style.display = 'block';
+                    if (btnSubmit) btnSubmit.style.display = 'block';
+                }}
+
                 if (dlaContainer.innerHTML !== '') {{
                     if(!confirm('การเปลี่ยนจังหวัดจะล้างข้อมูลที่กำลังกรอก ต้องการเปลี่ยนหรือไม่?')) {{ return; }}
                 }}
@@ -615,8 +658,11 @@ async def view_dashboard(province: str = ""):
     last_updated_text = f"อัปเดตข้อมูลล่าสุด: {last_update_row[0]}" if last_update_row else "ยังไม่มีการบันทึกข้อมูล"
     conn.close()
     
-    prov_opts = get_province_options(selected=province)
-    prov_opts_clean = prov_opts.replace('<option value="">-- เลือกจังหวัด --</option>', '')
+    # ส่งรายชื่อจังหวัดที่ล็อคแล้วเข้าไปด้วย
+    locked_provs = list(lock_dict.keys())
+    prov_opts = get_province_options(selected=province, locked_provs=locked_provs)
+    prov_opts_clean = prov_opts.replace('<option value="" data-locked="false">-- เลือกจังหวัด --</option>', '')
+    
     if province: df = df[df['province'] == province]
     if df.empty:
         table_html = "<p style='text-align: center; color: #666;'>ยังไม่มีข้อมูลการรายงานในระบบ</p>"
