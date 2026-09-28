@@ -700,7 +700,7 @@ async def view_dashboard(province: str = ""):
             else:
                 action_html += f'''
                         <form action="/upload/{province}" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px;">
-                            <input type="file" name="file" required accept=".pdf, .jpg, .png" style="font-size: 12px; width: 100%;" onchange="if(this.files[0].size > 5 * 1024 * 1024){ alert('❌ ไฟล์ใหญ่เกิน 5 MB! กรุณาลดขนาดไฟล์ก่อนอัปโหลด (ขนาดของคุณ: ' + (this.files[0].size / 1024 / 1024).toFixed(2) + ' MB)'); this.value = ''; }">
+                            <input type="file" name="file" required accept=".pdf, .jpg, .png" style="font-size: 12px; width: 100%;" onchange="if(this.files[0].size > 5 * 1024 * 1024) {{ alert('❌ ไฟล์ใหญ่เกิน 5 MB! กรุณาลดขนาดไฟล์ก่อนอัปโหลด (ขนาดของคุณ: ' + (this.files[0].size / 1024 / 1024).toFixed(2) + ' MB)'); this.value = ''; }}">
                             <button type="submit" style="background-color: #3182ce; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;">📤 ยืนยันไฟล์</button>
                         </form>
                 '''
