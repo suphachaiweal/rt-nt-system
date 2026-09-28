@@ -954,14 +954,36 @@ async def print_page(province: str):
 async def upload_file(province: str, file: UploadFile = File(...)):
     file_bytes = await file.read()
     
-    # เช็คขนาดไฟล์ หากเกิน 5 MB (5 * 1024 * 1024 bytes) ให้ตีกลับทันที
+    # เช็คขนาดไฟล์ หากเกิน 5 MB ให้ตีกลับทันที
     if len(file_bytes) > 5 * 1024 * 1024:
         return HTMLResponse(f"<script>alert('❌ ไฟล์มีขนาดใหญ่เกิน 5 MB ระบบปฏิเสธการอัปโหลด'); window.location.href='/dashboard?province={province}';</script>")
         
     file_ext = os.path.splitext(file.filename)[1]
     
-    # กำหนดชื่อไฟล์ใหม่ให้มีชื่อจังหวัดและ timestamp ชัดเจน
-    save_filename = f"RTNT2569_{province}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
+    # พจนานุกรมแปลงชื่อจังหวัดไทยเป็นภาษาอังกฤษ
+    prov_eng_map = {
+        "กระบี่": "Krabi", "กรุงเทพมหานคร": "Bangkok", "กาญจนบุรี": "Kanchanaburi", "กาฬสินธุ์": "Kalasin", 
+        "กำแพงเพชร": "KamphaengPhet", "ขอนแก่น": "KhonKaen", "จันทบุรี": "Chanthaburi", "ฉะเชิงเทรา": "Chachoengsao", 
+        "ชลบุรี": "Chonburi", "เชียงใหม่": "ChiangMai", "เชียงราย": "ChiangRai", "ตรัง": "Trang", "ตราด": "Trat",
+        "ตาก": "Tak", "นครนายก": "NakhonNayok", "นครปฐม": "NakhonPathom", "นครพนม": "NakhonPhanom", 
+        "นครราชสีมา": "NakhonRatchasima", "นครศรีธรรมราช": "NakhonSiThammarat", "นครสวรรค์": "NakhonSawan",
+        "นนทบุรี": "Nonthaburi", "ปทุมธานี": "PathumThani", "ประจวบคีรีขันธ์": "PrachuapKhiriKhan", "ปราจีนบุรี": "Prachinburi",
+        "พะเยา": "Phayao", "พังงา": "Phangnga", "พัทลุง": "Phatthalung", "พิจิตร": "Phichit", "พิษณุโลก": "Phitsanulok",
+        "ภูเก็ต": "Phuket", "มหาสารคาม": "MahaSarakham", "มุกดาหาร": "Mukdahan", "ยะลา": "Yala", "ยโสธร": "Yasothon",
+        "ร้อยเอ็ด": "RoiEt", "ระนอง": "Ranong", "ระยอง": "Rayong", "ราชบุรี": "Ratchaburi", "ลพบุรี": "Lopburi",
+        "ลำปาง": "Lampang", "ลำพูน": "Lamphun", "ศรีสะเกษ": "Sisaket", "สกลนคร": "SakonNakhon", "สงขลา": "Songkhla",
+        "สตูล": "Satun", "สมุทรปราการ": "SamutPrakan", "สมุทรสงคราม": "SamutSongkhram", "สมุทรสาคร": "SamutSakhon",
+        "สระบุรี": "Saraburi", "สระแก้ว": "SaKaeo", "สิงห์บุรี": "SingBuri", "สุโขทัย": "Sukhothai", "สุพรรณบุรี": "SuphanBuri",
+        "สุราษฎร์ธานี": "SuratThani", "สุรินทร์": "Surin", "หนองคาย": "NongKhai", "หนองบัวลำภู": "NongBuaLamphu",
+        "อำนาจเจริญ": "AmnatCharoen", "อุดรธานี": "UdonThani", "อุตรดิตถ์": "Uttaradit", "อุทัยธานี": "UthaiThani",
+        "อุบลราชธานี": "UbonRatchathani", "อ่างทอง": "AngThong", "เชียงใหม่": "ChiangMai"
+    }
+    
+    # ดึงชื่อภาษาอังกฤษตามแม็ป หากไม่มีให้ใช้ค่าเดิมสำรองไว้
+    eng_prov = prov_eng_map.get(province, "Province")
+    
+    # ตั้งชื่อไฟล์แบบสะอาดปลอดภัย: RTNT2569_Krabi_20260928_194500.pdf
+    save_filename = f"RTNT2569_{eng_prov}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
     
     try: supabase.storage.from_("signed-docs").upload(save_filename, file_bytes, {"content-type": file.content_type})
     except: pass
