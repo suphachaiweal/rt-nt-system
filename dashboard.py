@@ -52,13 +52,13 @@ async def view_public_dashboard():
     <html lang="th">
     <head>
         <meta charset="utf-8">
-        <title>ภาพรวมการรายงานข้อมูล RT/NT</title>
+        <title>ภาพรวมการรายงานข้อมูล RT/NT 2569</title>
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }}
+            body {{ font-family: 'Sarabun', sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
             .container {{ max-width: 1200px; margin: auto; }}
             .header-banner {{ text-align: center; margin-bottom: 15px; }}
-            .header-banner h1 {{ font-size: 24px; color: #000; margin-bottom: 10px; }}
+            .header-banner h1 {{ font-size: 24px; color: #000; margin-bottom: 10px; line-height: 1.4; }}
             .welcome-bar {{ background-color: #fdf5e6; border: 1px solid #fbeed5; color: #b7791f; text-align: center; padding: 10px; font-weight: bold; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
             
             .action-bar {{ text-align: right; margin-bottom: 15px; }}
@@ -75,9 +75,9 @@ async def view_public_dashboard():
             .td-value {{ width: 15%; text-align: center; font-weight: bold; }}
             .td-progress {{ width: 45%; }}
             
-            .progress-bg {{ background-color: #e9ecef; border-radius: 4px; height: 12px; width: 100%; overflow: hidden; margin-top: 5px; }}
-            .progress-bar-cyan {{ background-color: #17a2b8; height: 100%; }}
-            .progress-bar-green {{ background-color: #28a745; height: 100%; }}
+            .progress-bg {{ background-color: #e9ecef; border-radius: 4px; height: 12px; width: 100%; margin-top: 5px; box-sizing: border-box; }}
+            .progress-bar-cyan {{ background-color: #17a2b8; height: 100%; border-radius: 4px; }}
+            .progress-bar-green {{ background-color: #28a745; height: 100%; border-radius: 4px; }}
             
             .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
             
@@ -94,20 +94,30 @@ async def view_public_dashboard():
             .btn-print {{ background-color: #38a169; color: white; padding: 12px 30px; border: none; border-radius: 6px; font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); transition: 0.2s; }}
             .btn-print:hover {{ background-color: #2f855a; }}
             
+            .footer-info {{ text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; }}
+            
             /* คำสั่ง CSS สำหรับการสั่ง Print โดยเฉพาะ */
             @media print {{
+                @page {{ size: A4 portrait; margin: 15mm; }}
                 body {{ background-color: #fff; padding: 0; }}
                 .no-print {{ display: none !important; }}
                 .section-card {{ box-shadow: none; border: 1px solid #ccc; break-inside: avoid; margin-bottom: 15px; }}
                 .welcome-bar {{ box-shadow: none; border: 1px solid #ccc; }}
-                .progress-bg {{ border: 1px solid #ccc; }}
+                .progress-bg {{ border: 1px solid #ccc; background-color: #e9ecef !important; }}
+                .progress-bar-cyan {{ background-color: #17a2b8 !important; }}
+                .progress-bar-green {{ background-color: #28a745 !important; }}
+                .card-rt .section-header {{ background-color: #f8d7da !important; }}
+                .card-rt .sub-header {{ background-color: #fdf3f4 !important; }}
+                .card-nt .section-header {{ background-color: #d4edda !important; }}
+                .card-nt .sub-header {{ background-color: #f3fcf5 !important; }}
+                .footer-info {{ margin-top: 20px; }}
             }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header-banner">
-                <h1># ระบบรายงานและติดตามข้อมูลนักเรียน ป.1 และ ป.3 #</h1>
+                <h1>การรายงานข้อมูลนักเรียนสอบ RT/NT ประจำปีการศึกษา 2569 ระดับประเทศ</h1>
             </div>
             
             <div class="welcome-bar">
@@ -194,7 +204,12 @@ async def view_public_dashboard():
             </div>
             
             <div class="no-print" style="text-align: center; margin-top: 20px;">
-                <a href="/dashboard" style="color: #666; text-decoration: underline; font-size: 13px;">เข้าสู่ระบบเจ้าหน้าที่ส่วนกลาง (ตรวจสอบรายจังหวัด)</a>
+                <a href="/dashboard" style="color: #666; text-decoration: underline; font-size: 13px;">ตรวจสอบรายจังหวัด</a>
+            </div>
+            
+            <!-- เครดิตส่วนท้ายกระดาษ -->
+            <div class="footer-info">
+                กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
             </div>
         </div>
     </body>
