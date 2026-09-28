@@ -952,13 +952,11 @@ async def print_page(province: str):
                 <div>.......................................................</div>
             </div>
         </div>
-
-        <!-- ข้อความกองการศึกษาจะไหลมาต่อท้ายที่หน้าสุดท้ายหน้าเดียวอย่างสวยงาม -->
-        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #555;">
+    </div>
+<!-- ลบ position: fixed ออก และใส่ clear: both; เพื่อให้มันไหลไปอยู่หน้าสุดท้ายต่อจากลายเซ็นตามธรรมชาติ -->
+        <div style="clear: both; padding-top: 50px; text-align: center; font-size: 11px; color: #555;">
             กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
         </div>
-    </div>
-
     <div style="clear: both;"></div>
     <div style="height: 30px;"></div>
 </div>
