@@ -872,16 +872,11 @@ async def print_page(province: str):
         @media print {{
         @page {{ 
             size: A4 landscape; 
-            margin: 10mm 10mm 15mm 10mm; /* เพิ่มขอบล่างเป็น 15mm เพื่อเว้นพื้นที่ปลอดภัยไม่ให้ชนขอบ */
+            margin: 10mm; 
         }}
         body {{ -webkit-print-color-adjust: exact; }}
         .no-print {{ display: none; }}
-        
-        /* ป้องกันแถวตารางขาดครึ่งหรือโดนขอบล่างบัง ถ้าริมขอบจะยกไปหน้าใหม่ทั้งแถว */
-        tr {{
-            break-inside: avoid;
-            page-break-inside: avoid;
-        }}
+        thead {{ display: table-header-group; }}
     }}
     </style>
     </head><body>
