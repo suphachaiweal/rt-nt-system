@@ -872,19 +872,21 @@ async def print_page(province: str):
         @media print {{
         @page {{ 
             size: A4 landscape; 
-            margin: 10mm 10mm 25mm 10mm; /* ขยายขอบล่าง (bottom margin) เป็น 25mm เพื่อเว้นพื้นที่ให้ข้อความส่วนท้ายโดยเฉพาะ */
+            margin: 10mm 10mm 18mm 10mm; /* กำหนดขอบล่าง 18mm ให้เป็นเขตปลอดภัยสำหรับก้อนข้อความส่วนท้ายโดยเฉพาะ */
         }}
         body {{ -webkit-print-color-adjust: exact; }}
         .no-print {{ display: none; }}
         
-        /* ปรับระยะห่างตารางไม่ให้ชิดขอบล่างเกินไป */
-        table {{
-            margin-bottom: 15px;
-        }}
-        
-        /* ล็อกหัวตารางให้แสดงซ้ำสวยงามทุกหน้ากระดาษ */
+        /* บังคับหัวตารางให้แสดงซ้ำสวยงามทุกหน้ากระดาษ */
         thead {{ 
             display: table-header-group; 
+        }}
+
+        /* ป้องกันไม่ให้แถวตารางช่วงท้าย, แถวสรุปยอด, และก้อนข้อความต่อท้าย ถูกตัดขาดออกจากกัน 
+           ถ้าพื้นที่หน้าแรกเหลือไม่พอ ระบบจะปัดกลุ่มนี้ไปขึ้นหน้าใหม่ทั้งก้อนทันทีโดยไม่ทับซ้อน */
+        tr:nth-last-child(-n+5), .summary-row, .footer-note-section {{
+            break-inside: avoid;
+            page-break-inside: avoid;
         }}
     }}
     </style>
