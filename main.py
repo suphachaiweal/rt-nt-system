@@ -507,28 +507,28 @@ async def get_form():
             }}
             
             window.onload = async () => { 
-    await fetchSchoolData(); 
-    
-    // โค้ดผูกค่าจังหวัดกับลิงก์ตรวจสอบอัตโนมัติ
-    const provSelect = document.getElementById('provinceInput');
-    const dashLink = document.getElementById('dashLink');
+                await fetchSchoolData(); 
+                
+                // โค้ดผูกค่าจังหวัดกับลิงก์ตรวจสอบอัตโนมัติ
+                const provSelect = document.getElementById('provinceInput');
+                const dashLink = document.getElementById('dashLink');
 
-    function updateDashLink() {
-        if (provSelect && dashLink) {
-            const selectedProv = provSelect.value;
-            if (selectedProv) {
-                dashLink.href = "/dashboard?province=" + encodeURIComponent(selectedProv);
-            } else {
-                dashLink.href = "/dashboard";
-            }
-        }
-    }
+                function updateDashLink() {
+                    if (provSelect && dashLink) {
+                        const selectedProv = provSelect.value;
+                        if (selectedProv) {
+                            dashLink.href = "/dashboard?province=" + encodeURIComponent(selectedProv);
+                        } else {
+                            dashLink.href = "/dashboard";
+                        }
+                    }
+                }
 
-    if (provSelect) {
-        provSelect.addEventListener('change', updateDashLink);
-        updateDashLink();
-    }
-};
+                if (provSelect) {
+                    provSelect.addEventListener('change', updateDashLink);
+                    updateDashLink();
+                }
+            };
         </script>
         <div style="text-align: center; color: #666; font-size: 13px; margin-top: 30px; padding-top: 15px; padding-bottom: 20px; border-top: 1px dashed #ccc;">
     กองการศึกษาท้องถิ่น กรมส่งเสริมการปกครองท้องถิ่น โทร. 0-2241-9000 ต่อ 5318
