@@ -587,6 +587,35 @@ async def submit_batch(data: Submission):
 
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # ดักจับข้อมูลซ้ำ (Anti-Duplicate) ตรวจสอบก่อนบันทึก
+    for dla in data.dlas:
+        for school in dla.schools:
+            c.execute("SELECT id FROM school_data WHERE province=%s AND dla_name=%s AND school_name=%s", 
+                      (data.province, dla.dla_name, school.school_name))
+            if c.fetchone():
+                conn.close()
+                return {"status": "error", "message": f"❌ ตรวจพบข้อมูลซ้ำ!\n\nโรงเรียน '{school.school_name}' (สังกัด {dla.dla_name}) มีอยู่ในระบบแล้ว\n\nกรุณาลบโรงเรียนนี้ออกจากการกรอกรอบนี้ หากต้องการแก้ไขตัวเลข ให้ไปที่เมนู 'ตรวจสอบ/ปริ้นเอกสาร' ครับ"}
+
+    # ถ้าไม่ซ้ำ ให้บันทึกตามปกติ
+    for dla in data.dlas:
+        for school in dla.schools:
+            rt_json = json.dumps(school.rt_special) if school.has_special else '{}'
+            nt_json = json.dumps(school.nt_special) if school.has_special else '{}'
+            
+            c.execute('''INSERT INTO school_data 
+                         (province, dla_name, school_name, rt_student_count, nt_student_count, rt_special_json, nt_special_json) 
+                         VALUES (%s, %s, %s, %s, %s, %s, %s)''',
+                      (data.province, dla.dla_name, school.school_name, school.rt_count, school.nt_count, rt_json, nt_json))
+    update_last_modified(conn)
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+    if is_province_locked(data.province):
+        return {"status": "error", "message": "❌ จังหวัดนี้ยืนยันและล็อคข้อมูลแล้ว ไม่สามารถเพิ่มข้อมูลใหม่ได้!"}
+
+    conn = get_db_connection()
+    c = conn.cursor()
     for dla in data.dlas:
         for school in dla.schools:
             rt_json = json.dumps(school.rt_special) if school.has_special else '{}'
@@ -667,13 +696,16 @@ async def view_dashboard(province: str = ""):
     if df.empty:
         table_html = "<p style='text-align: center; color: #666;'>ยังไม่มีข้อมูลการรายงานในระบบ</p>"
     else:
-        table_html = '<table class="data-table" id="dataTable"><thead><tr><th>จังหวัด</th><th>อปท. สังกัด</th><th>โรงเรียน</th><th>ป.1 (RT)</th><th>ป.3 (NT)</th><th>จัดการ</th></tr></thead><tbody>'
+        # เพิ่มคอลัมน์ลำดับ 5%
+        table_html = '<table class="data-table" id="dataTable"><thead><tr><th style="width: 5%;">ลำดับ</th><th>จังหวัด</th><th>อปท. สังกัด</th><th>โรงเรียน</th><th>ป.1 (RT)</th><th>ป.3 (NT)</th><th>จัดการ</th></tr></thead><tbody>'
         current_dla = None
+        row_num = 1 # ตัวนับลำดับ
+        
         for index, row in df.iterrows():
             dla_display = row['dla_name'] if row['dla_name'] != current_dla else ""
             if row['dla_name'] != current_dla:
                 if current_dla is not None:
-                     table_html += '<tr class="dla-separator"><td colspan="6"></td></tr>'
+                     table_html += '<tr class="dla-separator"><td colspan="7"></td></tr>'
                 current_dla = row['dla_name']
                 
             display_style = ""
@@ -697,16 +729,24 @@ async def view_dashboard(province: str = ""):
             has_sp = (rt_sp_count > 0) or (nt_sp_count > 0)
             sp_badge = f'<span style="color: #d69e2e; font-size: 12px; margin-left: 5px;" title="มีเด็กพิเศษ RT {rt_sp_count} คน / NT {nt_sp_count} คน">♿</span>' if has_sp else ''
 
+            # เช็คข้อมูลพิมพ์เองและทำสีเหลืองอ่อน (#ffffe0)
+            is_custom_dla = row['dla_name'] not in DB_DATA.get(row['province'], {})
+            is_custom_sch = row['school_name'] not in DB_DATA.get(row['province'], {}).get(row['dla_name'], [])
+            dla_bg = "background-color: #ffffe0;" if is_custom_dla else ""
+            sch_bg = "background-color: #ffffe0;" if is_custom_sch else ""
+
             table_html += f'''
             <tr style="{display_style}">
+                <td class="center" style="text-align: center; color: #718096; font-size: 12px;">{row_num}</td>
                 <td style="color: #718096; font-size: 12px;" class="prov-col">{row['province']}</td>
-                <td style="font-weight: 500; color: #2c5282;">{dla_display}</td>
-                <td>{row['school_name']}{sp_badge}</td>
+                <td style="font-weight: 500; color: #2c5282; {dla_bg}">{dla_display}</td>
+                <td style="{sch_bg}">{row['school_name']}{sp_badge}</td>
                 <td class="num">{row['rt_student_count']}</td>
                 <td class="num">{row['nt_student_count']}</td>
                 <td style="text-align: center;">{action_btn}</td>
             </tr>
             '''
+            row_num += 1
         table_html += '</tbody></table>'
         
     action_html = ""
@@ -879,11 +919,17 @@ async def print_page(province: str):
             sum_rt[f't{i}'] += rt_sp_d.get(f't{i}', 0)
             sum_nt[f't{i}'] += nt_sp_d.get(f't{i}', 0)
 
+        # เช็คข้อมูลพิมพ์เองและทำสีเหลืองอ่อน (#ffffe0)
+        is_custom_dla = row['dla_name'] not in DB_DATA.get(row['province'], {})
+        is_custom_sch = row['school_name'] not in DB_DATA.get(row['province'], {}).get(row['dla_name'], [])
+        dla_bg = "background-color: #ffffe0;" if is_custom_dla else ""
+        sch_bg = "background-color: #ffffe0;" if is_custom_sch else ""
+
         table_rows += f'''
         <tr>
             <td class="center">{row_num}</td>
-            <td class="truncate">{dla_display}</td>
-            <td class="truncate">{row["school_name"]}</td>
+            <td class="truncate" style="{dla_bg}">{dla_display}</td>
+            <td class="truncate" style="{sch_bg}">{row["school_name"]}</td>
             
             <td class="center" style="font-weight:bold; background:#f0f8ff;">{f_num(rt_all)}</td>
             <td class="center">{f_num(rt_norm)}</td>
@@ -1118,6 +1164,7 @@ async def export_data(key: str = ""):
     excel_row = 6 
     prov_start_row = 6
     subtotal_rows = []
+    custom_bg_rows = set() # เก็บเลขแถวที่พิมพ์เองสำหรับทำไฮไลต์
 
     for index, row in df.iterrows():
         prov = row['province']
@@ -1171,6 +1218,10 @@ async def export_data(key: str = ""):
             })
             row_num += 1; excel_row += 1
             
+        # ตรวจสอบการพิมพ์เอง
+        is_custom_dla = dla not in DB_DATA.get(prov, {})
+        is_custom_sch = sch not in DB_DATA.get(prov, {}).get(dla, [])
+
         if dla != current_dla:
             current_dla = dla
             dla_rt_budget = 1000 if dla_status[prov_dla_key]['rt_student_count'] > 0 else 0
@@ -1182,6 +1233,7 @@ async def export_data(key: str = ""):
                 'G': None, 'H': None, 'I': dla_nt_budget, 'J': None, 
                 'K': f"=SUM(E{excel_row},I{excel_row})"
             })
+            if is_custom_dla: custom_bg_rows.add(excel_row)
             row_num += 1; excel_row += 1
             
         export_rows.append({
@@ -1190,6 +1242,7 @@ async def export_data(key: str = ""):
             'G': nt_c, 'H': f"=IF(G{excel_row}>0, 250+(G{excel_row}*14), 0)", 'I': None, 'J': None,
             'K': f"=SUM(D{excel_row},H{excel_row})"
         })
+        if is_custom_sch: custom_bg_rows.add(excel_row)
         row_num += 1; excel_row += 1
 
     if current_province is not None:
@@ -1389,11 +1442,12 @@ async def export_data(key: str = ""):
         ws1.merge_cells('A4:A5'); ws1['A4'] = 'ลำดับ'
         ws1.merge_cells('B4:B5'); ws1['B4'] = 'จังหวัด/อปท./โรงเรียน'
         
+        # แก้ไขข้อความในหัวตาราง D5 และ H5
         ws1.merge_cells('C4:F4'); ws1['C4'] = 'การสอบ RT (ชั้น ป.1)'
-        ws1['C5'] = 'นักเรียน\n(คน)'; ws1['D5'] = 'งบโรงเรียน\n(250+12)'; ws1['E5'] = 'งบ อปท.\n(1,000)'; ws1['F5'] = 'งบ สถจ.\n(10,000)'
+        ws1['C5'] = 'นักเรียน\n(คน)'; ws1['D5'] = 'งบโรงเรียน\n(250+12/คน)'; ws1['E5'] = 'งบ อปท.\n(1,000)'; ws1['F5'] = 'งบ สถจ.\n(10,000)'
         
         ws1.merge_cells('G4:J4'); ws1['G4'] = 'การสอบ NT (ชั้น ป.3)'
-        ws1['G5'] = 'นักเรียน\n(คน)'; ws1['H5'] = 'งบโรงเรียน\n(250+14)'; ws1['I5'] = 'งบ อปท.\n(1,000)'; ws1['J5'] = 'งบ สถจ.\n(10,000)'
+        ws1['G5'] = 'นักเรียน\n(คน)'; ws1['H5'] = 'งบโรงเรียน\n(250+14/คน)'; ws1['I5'] = 'งบ อปท.\n(1,000)'; ws1['J5'] = 'งบ สถจ.\n(10,000)'
         
         ws1.merge_cells('K4:K5'); ws1['K4'] = 'รวมทั้งสิ้น\n(บาท)'
         
@@ -1407,6 +1461,7 @@ async def export_data(key: str = ""):
         fill_rt = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
         fill_nt = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
         fill_base = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        fill_custom = PatternFill(start_color="FFFFCC", end_color="FFFFCC", fill_type="solid") # สีเหลืองอ่อนสำหรับพิมพ์เอง
         
         for r in range(4, 6):
             for c in range(1, 12):
@@ -1444,7 +1499,11 @@ async def export_data(key: str = ""):
                     else: cell.alignment = Alignment(horizontal='center' if c==1 else 'right', vertical='center')
                 else:
                     if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
-                    elif c == 2: cell.alignment = Alignment(horizontal='left', vertical='center')
+                    elif c == 2: 
+                        cell.alignment = Alignment(horizontal='left', vertical='center')
+                        # ไฮไลต์เซลล์ด้วยสีเหลืองอ่อนถ้าเป็นข้อมูลที่พิมพ์เอง
+                        if r in custom_bg_rows:
+                            cell.fill = fill_custom
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
                         if cell.value is not None and cell.value != 0 and cell.value != "": 
