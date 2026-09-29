@@ -729,18 +729,18 @@ async def view_dashboard(province: str = ""):
             has_sp = (rt_sp_count > 0) or (nt_sp_count > 0)
             sp_badge = f'<span style="color: #d69e2e; font-size: 12px; margin-left: 5px;" title="มีเด็กพิเศษ RT {rt_sp_count} คน / NT {nt_sp_count} คน">♿</span>' if has_sp else ''
 
-            # เช็คข้อมูลพิมพ์เองและทำสีเหลืองอ่อน (#ffffe0)
+            # เปลี่ยนจากพื้นหลังสีเหลือง เป็นตัวอักษรสีแดงตัวหนา
             is_custom_dla = row['dla_name'] not in DB_DATA.get(row['province'], {})
             is_custom_sch = row['school_name'] not in DB_DATA.get(row['province'], {}).get(row['dla_name'], [])
-            dla_bg = "background-color: #ffffe0;" if is_custom_dla else ""
-            sch_bg = "background-color: #ffffe0;" if is_custom_sch else ""
+            dla_style = "color: #e53e3e; font-weight: 700;" if is_custom_dla else "color: #2c5282; font-weight: 500;"
+            sch_style = "color: #e53e3e; font-weight: 700;" if is_custom_sch else ""
 
             table_html += f'''
             <tr style="{display_style}">
                 <td class="center" style="text-align: center; color: #718096; font-size: 12px;">{row_num}</td>
                 <td style="color: #718096; font-size: 12px;" class="prov-col">{row['province']}</td>
-                <td style="font-weight: 500; color: #2c5282; {dla_bg}">{dla_display}</td>
-                <td style="{sch_bg}">{row['school_name']}{sp_badge}</td>
+                <td style="{dla_style}">{dla_display}</td>
+                <td style="{sch_style}">{row['school_name']}{sp_badge}</td>
                 <td class="num">{row['rt_student_count']}</td>
                 <td class="num">{row['nt_student_count']}</td>
                 <td style="text-align: center;">{action_btn}</td>
@@ -919,17 +919,17 @@ async def print_page(province: str):
             sum_rt[f't{i}'] += rt_sp_d.get(f't{i}', 0)
             sum_nt[f't{i}'] += nt_sp_d.get(f't{i}', 0)
 
-        # เช็คข้อมูลพิมพ์เองและทำสีเหลืองอ่อน (#ffffe0)
-        is_custom_dla = row['dla_name'] not in DB_DATA.get(row['province'], {})
-        is_custom_sch = row['school_name'] not in DB_DATA.get(row['province'], {}).get(row['dla_name'], [])
-        dla_bg = "background-color: #ffffe0;" if is_custom_dla else ""
-        sch_bg = "background-color: #ffffe0;" if is_custom_sch else ""
+        # แก้บั๊ก: ใช้ตัวแปร province จาก URL แทน row['province'] และเปลี่ยนเป็นตัวอักษรสีแดงตัวหนา
+        is_custom_dla = row['dla_name'] not in DB_DATA.get(province, {})
+        is_custom_sch = row['school_name'] not in DB_DATA.get(province, {}).get(row['dla_name'], [])
+        dla_style = "color: red; font-weight: bold;" if is_custom_dla else ""
+        sch_style = "color: red; font-weight: bold;" if is_custom_sch else ""
 
         table_rows += f'''
         <tr>
             <td class="center">{row_num}</td>
-            <td class="truncate" style="{dla_bg}">{dla_display}</td>
-            <td class="truncate" style="{sch_bg}">{row["school_name"]}</td>
+            <td class="truncate" style="{dla_style}">{dla_display}</td>
+            <td class="truncate" style="{sch_style}">{row["school_name"]}</td>
             
             <td class="center" style="font-weight:bold; background:#f0f8ff;">{f_num(rt_all)}</td>
             <td class="center">{f_num(rt_norm)}</td>
@@ -1164,7 +1164,7 @@ async def export_data(key: str = ""):
     excel_row = 6 
     prov_start_row = 6
     subtotal_rows = []
-    custom_bg_rows = set() # เก็บเลขแถวที่พิมพ์เองสำหรับทำไฮไลต์
+    custom_bg_rows = set() # เก็บเลขแถวที่พิมพ์เองสำหรับทำสีอักษรแดง
 
     for index, row in df.iterrows():
         prov = row['province']
@@ -1461,7 +1461,9 @@ async def export_data(key: str = ""):
         fill_rt = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
         fill_nt = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
         fill_base = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-        fill_custom = PatternFill(start_color="FFFFCC", end_color="FFFFCC", fill_type="solid") # สีเหลืองอ่อนสำหรับพิมพ์เอง
+        
+        # สร้างฟอนต์สีแดงตัวหนาสำหรับไฮไลต์
+        font_custom = Font(color="FF0000", bold=True)
         
         for r in range(4, 6):
             for c in range(1, 12):
@@ -1501,9 +1503,9 @@ async def export_data(key: str = ""):
                     if c == 1: cell.alignment = Alignment(horizontal='center', vertical='center')
                     elif c == 2: 
                         cell.alignment = Alignment(horizontal='left', vertical='center')
-                        # ไฮไลต์เซลล์ด้วยสีเหลืองอ่อนถ้าเป็นข้อมูลที่พิมพ์เอง
+                        # เปลี่ยนฟอนต์เป็นสีแดงถ้าเป็นข้อมูลที่พิมพ์เอง
                         if r in custom_bg_rows:
-                            cell.fill = fill_custom
+                            cell.font = font_custom
                     else:
                         cell.alignment = Alignment(horizontal='right', vertical='center')
                         if cell.value is not None and cell.value != 0 and cell.value != "": 
