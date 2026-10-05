@@ -1124,7 +1124,8 @@ async def upload_file(province: str, file: UploadFile = File(...)):
     update_last_modified(conn)
     conn.commit()
     conn.close()
-    return RedirectResponse(url=f"/dashboard?province={province}", status_code=303)
+    success_msg = f"✅ การส่งข้อมูลนักเรียนสอบ RT/NT ประจำปีการศึกษา 2569 ของจังหวัด{province} ดำเนินการเสร็จเรียบร้อยแล้ว\\n\\nขอขอบพระคุณที่ให้ความร่วมมือค่ะ"
+    return HTMLResponse(content=f"<script>alert('{success_msg}'); window.location.href='/dashboard?province={province}';</script>")
 
 @app.get("/delete/{school_id}")
 async def delete_data(school_id: int):
