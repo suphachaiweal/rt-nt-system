@@ -1710,6 +1710,18 @@ async def export_data(key: str = ""):
 
     return FileResponse(file_path, filename="สรุปงบประมาณ_RT_NT_2569.xlsx")
 
+@app.get("/ping")
+async def keep_alive_ping():
+    try:
+        # สะกิดฐานข้อมูลเบาๆ เพื่อไม่ให้ Supabase Auto-Pause
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT 1")
+        conn.close()
+        return {"status": "OK", "message": "Server and Supabase are awake!"}
+    except Exception as e:
+        return {"status": "Error", "message": str(e)}
+
 @app.get("/edit/{school_id}", response_class=HTMLResponse)
 async def edit_page(school_id: int):
     conn = get_db_connection()
