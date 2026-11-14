@@ -1011,9 +1011,9 @@ async def print_page(province: str):
                 </tr>
                 <tr>
                     <th style="width:3%;">รวม</th><th style="width:3%;">ปกติ</th>
-                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">LD</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
+                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">เรียนรู้</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
                     <th style="width:3%;">รวม</th><th style="width:3%;">ปกติ</th>
-                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">LD</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
+                    <th style="width:2%;">เห็น</th><th style="width:2%;">ได้ยิน</th><th style="width:2%;">ปัญญา</th><th style="width:2%;">กาย</th><th style="width:2%;">เรียนรู้</th><th style="width:2%;">พูด</th><th style="width:2%;">อารมณ์</th><th style="width:2%;">ออทิส</th><th style="width:2%;">ซ้อน</th>
                 </tr>
             </thead>
             <tbody>
