@@ -325,7 +325,7 @@ async def get_form():
                         
                         <label class="special-toggle">
                             <input type="checkbox" class="has-special" onchange="toggleSpecialPanel(this)"> 
-                            ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม)
+                            ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ
                         </label>
                         
                         <div class="special-panel">
@@ -1523,7 +1523,7 @@ async def export_data(key: str = ""):
         # ==================== ชีท 2: รายงานเด็กพิเศษ ====================
         df_raw.to_excel(writer, index=False, header=False, startrow=3, sheet_name='รายงานเด็กพิเศษ')
         ws_sp = writer.sheets['รายงานเด็กพิเศษ']
-        ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม) ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
+        ws_sp.merge_cells('A1:AB1'); ws_sp['A1'] = 'รายงานสรุปจำนวนนักเรียนที่มีความต้องการจำเป็นพิเศษ ปีการศึกษา 2569'; ws_sp['A1'].font = Font(bold=True, size=14); ws_sp['A1'].alignment = Alignment(horizontal='center')
         ws_sp.merge_cells('A2:D2'); ws_sp['A2'] = 'ข้อมูลสถานศึกษา'
         ws_sp.merge_cells('E2:P2'); ws_sp['E2'] = 'ระดับชั้น ป.1 (สอบ RT)'
         ws_sp.merge_cells('Q2:AB2'); ws_sp['Q2'] = 'ระดับชั้น ป.3 (สอบ NT)'
@@ -1814,7 +1814,7 @@ async def edit_page(school_id: int):
                 
                 <label class="special-toggle">
                     <input type="checkbox" name="has_special" id="has_special" {checked_str} onchange="toggleSpecialPanel(this)"> 
-                    ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ (เรียนร่วม)
+                    ♿ โรงเรียนนี้มีนักเรียนที่มีความต้องการจำเป็นพิเศษ
                 </label>
                 
                 <div class="special-panel" id="special_panel">
