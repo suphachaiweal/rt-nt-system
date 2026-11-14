@@ -161,8 +161,14 @@ async def get_form():
     
     prov_opts = get_province_options(locked_provs=locked_provs)
     
-    special_inputs_rt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input rt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
-    special_inputs_nt = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input nt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
+    special_inputs_rt = "".join([
+        f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input rt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'rt\')" {"readonly style=\'background-color: #e9ecef; color: #adb5bd; cursor: not-allowed;\' tabindex=\'-1\'" if cid == "t5" else ""}></div>' 
+        for cid, name in SPECIAL_CATEGORIES
+    ])
+    special_inputs_nt = "".join([
+        f'<div class="sp-row"><label>{name}</label><input type="number" class="sp-input nt-sp-{cid}" min="0" value="0" oninput="calcSpecial(this, \'nt\')"></div>' 
+        for cid, name in SPECIAL_CATEGORIES
+    ])
     
     html_content = f'''<!DOCTYPE html>
     <html lang="th">
