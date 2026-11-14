@@ -1338,7 +1338,9 @@ async def export_data(key: str = ""):
         raw_rows.append({
             0: sp_row_num, 1: row['province'], 2: row['dla_name'], 3: row['school_name'],
             4: row['rt_student_count'], 5: row['rt_student_count'] - rt_sp, 6: rt_sp,
-            7: rt_sp_d.get('t1', 0), 8: rt_sp_d.get('t2', 0), 9: rt_sp_d.get('t3', 0), 10: rt_sp_d.get('t4', 0), 11: rt_sp_d.get('t5', 0), 12: rt_sp_d.get('t6', 0), 13: rt_sp_d.get('t7', 0), 14: rt_sp_d.get('t8', 0), 15: rt_sp_d.get('t9', 0),
+            7: rt_sp_d.get('t1', 0), 8: rt_sp_d.get('t2', 0), 9: rt_sp_d.get('t3', 0), 10: rt_sp_d.get('t4', 0), 
+            11: "-", 
+            12: rt_sp_d.get('t6', 0), 13: rt_sp_d.get('t7', 0), 14: rt_sp_d.get('t8', 0), 15: rt_sp_d.get('t9', 0),
             16: row['nt_student_count'], 17: row['nt_student_count'] - nt_sp, 18: nt_sp,
             19: nt_sp_d.get('t1', 0), 20: nt_sp_d.get('t2', 0), 21: nt_sp_d.get('t3', 0), 22: nt_sp_d.get('t4', 0), 23: nt_sp_d.get('t5', 0), 24: nt_sp_d.get('t6', 0), 25: nt_sp_d.get('t7', 0), 26: nt_sp_d.get('t8', 0), 27: nt_sp_d.get('t9', 0)
         })
