@@ -661,7 +661,7 @@ async def lock_province(province: str):
 
 @app.get("/unlock/{province}")
 async def unlock_province(province: str, key: str = ""):
-    if key != "DLA2569":
+    if key != "DLAPAT2569":
         return HTMLResponse("<script>alert('รหัสผ่านไม่ถูกต้อง!'); window.history.back();</script>")
         
     conn = get_db_connection()
@@ -1145,7 +1145,7 @@ async def delete_data(school_id: int):
 
 @app.get("/export")
 async def export_data(key: str = ""):
-    if key != "DLA2569":
+    if key != "DLAPS2569":
         return HTMLResponse("<script>alert('รหัสผ่านไม่ถูกต้อง! ระบบสงวนสิทธิ์เฉพาะเจ้าหน้าที่กรมเท่านั้น'); window.history.back();</script>")
         
     conn = get_db_connection()
