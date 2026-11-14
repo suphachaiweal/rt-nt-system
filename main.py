@@ -146,7 +146,7 @@ def get_province_options(selected="", locked_provs=None):
 
 SPECIAL_CATEGORIES = [
     ("t1", "ทางการเห็น"), ("t2", "ทางการได้ยิน"), ("t3", "สติปัญญา"),
-    ("t4", "ร่างกาย"), ("t5", "เรียนรู้ (LD)"), ("t6", "พูด/ภาษา"),
+    ("t4", "ร่างกาย"), ("t5", "เรียนรู้"), ("t6", "พูด/ภาษา"),
     ("t7", "พฤติกรรม"), ("t8", "ออทิสติก"), ("t9", "พิการซ้อน")
 ]
 
@@ -1743,9 +1743,14 @@ async def edit_page(school_id: int):
 
     def get_sp_val(data_dict, key): return data_dict.get(key, 0)
         
-    rt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="rt_sp_{cid}" class="sp-input rt-sp-{cid}" min="0" value="{get_sp_val(rt_sp_data, cid)}" oninput="calcSpecial(\'rt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
-    nt_inputs = "".join([f'<div class="sp-row"><label>{name}</label><input type="number" name="nt_sp_{cid}" class="sp-input nt-sp-{cid}" min="0" value="{get_sp_val(nt_sp_data, cid)}" oninput="calcSpecial(\'nt\')"></div>' for cid, name in SPECIAL_CATEGORIES])
-
+    rt_inputs = "".join([
+        f'<div class="sp-row"><label>{name}</label><input type="number" name="rt_sp_{cid}" class="sp-input rt-sp-{cid}" min="0" value="{get_sp_val(rt_sp_data, cid)}" oninput="calcSpecial(\'rt\')" {"readonly style=\'background-color: #e9ecef; color: #adb5bd; cursor: not-allowed;\' tabindex=\'-1\'" if cid == "t5" else ""}></div>' 
+        for cid, name in SPECIAL_CATEGORIES
+    ])
+    nt_inputs = "".join([
+        f'<div class="sp-row"><label>{name}</label><input type="number" name="nt_sp_{cid}" class="sp-input nt-sp-{cid}" min="0" value="{get_sp_val(nt_sp_data, cid)}" oninput="calcSpecial(\'nt\')"></div>' 
+        for cid, name in SPECIAL_CATEGORIES
+    ])
     html_content = f'''<!DOCTYPE html>
     <html lang="th">
     <head>
